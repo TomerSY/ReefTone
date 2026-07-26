@@ -10,7 +10,7 @@ like a focused desktop editor today and can grow into a hosted product later.
 ## What is included
 
 - HEIC/HEIF, JPEG, PNG, and TIFF input
-- source bit-depth and embedded-profile detection
+- base bit-depth, ICC/P3, transfer-function, HDR gain-map, and auxiliary-image detection
 - float32 processing from decode through correction
 - scene analysis for red attenuation, cyan cast, haze, and low light
 - underwater red compensation and confidence-gated white balance
@@ -20,6 +20,8 @@ like a focused desktop editor today and can grow into a hosted product later.
 - a real-time before/after editor with distinct presets, undo/redo, drag-and-drop,
   and keyboard-accessible controls
 - full-resolution JPEG, PNG, and 16-bit TIFF export
+- 10-bit HEIC export with source ICC, EXIF, and available XMP preservation
+- format-specific color-fidelity guidance before export
 - a framework-independent processing core designed to be reused on video frames
 
 Source photos remain exactly where they are and are ignored by Git. Uploaded images
@@ -38,6 +40,11 @@ reeftone
 
 Then open [http://127.0.0.1:8765](http://127.0.0.1:8765). On macOS, you can also
 double-click `run.command` after the first setup.
+
+Stop the local service with `Ctrl+C` or by closing its Terminal window. ReefTone
+does not terminate on a browser `unload` event: browsers do not reliably distinguish
+a deliberate close from a reload, crash, sleeping tab, or another still-open tab,
+so automatic shutdown could interrupt an export.
 
 The photos already in this folder appear as a private local library on the welcome
 screen. You can also drag a file anywhere over the app.
@@ -104,6 +111,11 @@ JPEG photographs rather than camera RAW development. See
 [the algorithm notes](docs/algorithm.md) for details and limitations. The measurements
 behind the Dramatic look are recorded in
 [the reference-style analysis](docs/reference-style-analysis.md).
+
+Apple gain-map HDR is now detected and reported separately from the SDR base.
+ReefTone does not copy an unchanged gain map onto edited pixels or falsely tag an
+SDR result as HDR. The exact preservation matrix and native HDR roadmap are in
+[the color-management notes](docs/color-management.md).
 
 ## Video roadmap
 

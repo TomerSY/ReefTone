@@ -1,6 +1,6 @@
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
-const APP_VERSION = "0.3.0";
+const APP_VERSION = "0.4.0";
 
 const state = {
   session: null,
@@ -10,7 +10,11 @@ const state = {
   history: [],
   future: [],
   compare: 50,
-  compareVisible: true,
+  swipeEnabled: true,
+  fullBefore: false,
+  zoomScale: 1,
+  zoomMode: "fit",
+  settingsClips: [],
   previewController: null,
   previewTimer: null,
   previewUrl: null,
@@ -34,6 +38,7 @@ const elements = {
   inspector: $("#inspector"),
   exportButton: $("#exportButton"),
   resetButton: $("#resetButton"),
+  copySettingsButton: $("#copySettingsButton"),
   undoButton: $("#undoButton"),
   redoButton: $("#redoButton"),
   analysisLabel: $("#analysisLabel"),
@@ -46,6 +51,7 @@ const elements = {
   downloadButton: $("#downloadButton"),
   eyedropperButton: $("#eyedropperButton"),
   sampleMarker: $("#sampleMarker"),
+  colorCard: $("#colorCard"),
 };
 
 function formatBytes(bytes) {
@@ -170,12 +176,16 @@ async function activateSession(session) {
   elements.canvasToolbar.hidden = false;
   elements.exportButton.disabled = false;
   elements.resetButton.disabled = false;
+  elements.copySettingsButton.disabled = false;
   elements.documentTitle.textContent = session.name;
   elements.saveState.textContent = "Non-destructive edit";
   elements.analysisLabel.textContent = session.analysis.label;
   elements.analysisText.textContent = `${Math.round(session.analysis.red_loss * 100)}% red attenuation · ${Math.round(session.analysis.haze * 100)}% haze`;
   elements.confidenceBadge.textContent = `${Math.round(session.analysis.confidence * 100)}%`;
-  elements.imageMeta.textContent = `${session.width} × ${session.height} · ${session.source_bits}-bit source · ${session.profile} · float32 processing`;
+  const color = session.color || {};
+  elements.imageMeta.textContent = `${session.width} × ${session.height} · ${color.bit_depth || session.source_bits}-bit base · ${color.profile || session.profile} · ${color.dynamic_range || "SDR"} · float32 processing`;
+  renderColorInfo(color);
+  configureExportForSession(color);
 
   revokeImageUrls();
   state.originalUrl = `/api/session/${session.id}/original`;
@@ -184,7 +194,8 @@ async function activateSession(session) {
   await elements.original.decode();
   scrollToTop();
   alignImageLayers();
-  setCompare(50);
+  setSwipeEnabled(true);
+  setZoomMode("fit");
   updateHistoryButtons();
   schedulePreview(0);
 }
@@ -192,6 +203,116 @@ async function activateSession(session) {
 function setLoadingDocument(text) {
   elements.documentTitle.textContent = text;
   elements.saveState.textContent = "Working locally";
+}
+
+function renderColorInfo(color) {
+  elements.colorCard.hidden = false;
+  $("#colorProfile").textContent = color.profile || "Unprofiled RGB";
+  const workingSuffix = color.working_profile && color.working_profile !== color.profile
+    ? ` · working: ${color.working_profile}`
+    : "";
+  $("#colorTransfer").textContent = `${color.primaries || "Unknown primaries"} · ${color.transfer || "Unknown transfer"}${workingSuffix}`;
+  const badges = [
+    color.dynamic_range || "SDR",
+    `${color.bit_depth || 8}-bit base`,
+    color.format || "Image",
+  ];
+  $("#colorBadges").innerHTML = badges.map(value => `<span>${escapeHtml(value)}</span>`).join("");
+  const auxiliaryCount = color.auxiliary_images?.length || 0;
+  if (color.hdr_gain_map) {
+    $("#colorSummary").textContent = `Apple gain-map HDR detected with ${auxiliaryCount} auxiliary image${auxiliaryCount === 1 ? "" : "s"}. Editing currently uses its color-managed SDR base; HEIC export retains P3/ICC, EXIF, and 10-bit precision but does not copy an unmodified HDR gain map.`;
+  } else if (color.dynamic_range !== "SDR") {
+    $("#colorSummary").textContent = `${color.dynamic_range} with ${color.transfer} detected. ReefTone safely tone-maps this to an sRGB SDR working copy before applying display-referred corrections; it does not retain HDR tags on the edited export.`;
+  } else {
+    $("#colorSummary").textContent = `Profile-aware ${color.dynamic_range || "SDR"} workflow. Embedded ICC, EXIF, and available XMP metadata are carried into compatible exports.`;
+  }
+}
+
+function configureExportForSession(color) {
+  const preferHeic = ["HEIC", "HEIF"].includes(color.format);
+  const radio = $(`.format-options input[value="${preferHeic ? "heic" : "jpeg"}"]`);
+  if (radio) radio.checked = true;
+  updateExportColorNote();
+}
+
+function updateExportColorNote() {
+  if (!state.session) return;
+  const format = new FormData($("#exportForm")).get("format");
+  const color = state.session.color || {};
+  const note = $("#colorExportNote");
+  if (format === "heic") {
+    const hdrSource = color.dynamic_range !== "SDR";
+    note.className = `color-export-note${hdrSource ? " warning" : ""}`;
+    note.textContent = color.hdr_gain_map
+      ? "10-bit HEIC will preserve the source P3/ICC profile, EXIF and XMP. The Apple HDR gain map cannot be reused after pixel edits, so this export is wide-color SDR—not falsely tagged HDR."
+      : hdrSource
+      ? "This HDR source is exported as a safely tone-mapped 10-bit sRGB HEIC. HDR transfer tags are deliberately removed until ReefTone has an unclamped native HDR editor."
+      : "10-bit HEIC preserves the working color profile and compatible camera metadata.";
+  } else if (format === "tiff") {
+    note.className = "color-export-note";
+    note.textContent = "16-bit TIFF preserves the embedded ICC profile and is the safest lossless editing master.";
+  } else if (format === "png") {
+    note.className = "color-export-note";
+    note.textContent = "PNG is lossless but this delivery export is 8-bit. The embedded ICC profile is retained.";
+  } else {
+    note.className = "color-export-note";
+    note.textContent = "JPEG retains the embedded ICC and EXIF metadata, but remains an 8-bit SDR delivery format.";
+  }
+  $("#qualityRow").hidden = !["jpeg", "heic"].includes(format);
+}
+
+function copyCurrentSettings() {
+  if (!state.session) return;
+  const settings = structuredClone(state.settings);
+  ["sample_red", "sample_green", "sample_blue", "sample_strength"].forEach(name => {
+    settings[name] = 0;
+  });
+  const activePreset = $(".presets button.active")?.textContent.trim() || "Custom";
+  state.settingsClips.unshift({
+    id: crypto.randomUUID(),
+    name: state.session.name,
+    look: activePreset,
+    settings,
+    bypassed: [...state.bypassed].filter(name => !name.startsWith("sample_")),
+  });
+  state.settingsClips = state.settingsClips.slice(0, 4);
+  renderSettingsShelf();
+  toast("Settings copied for another photo");
+}
+
+function renderSettingsShelf() {
+  const shelf = $("#settingsShelf");
+  const container = $("#settingsShelfItems");
+  shelf.hidden = !state.settingsClips.length;
+  container.innerHTML = state.settingsClips.map(clip => `
+    <div class="settings-clip" data-clip="${escapeHtml(clip.id)}">
+      <span><strong>${escapeHtml(clip.look)}</strong><small>${escapeHtml(clip.name)}</small></span>
+      <button type="button" data-apply-clip="${escapeHtml(clip.id)}">Apply</button>
+      <button type="button" class="remove-clip" data-remove-clip="${escapeHtml(clip.id)}" aria-label="Remove copied settings">×</button>
+    </div>
+  `).join("");
+  $$("[data-apply-clip]", container).forEach(button => {
+    button.addEventListener("click", () => applySettingsClip(button.dataset.applyClip));
+  });
+  $$("[data-remove-clip]", container).forEach(button => {
+    button.addEventListener("click", () => {
+      state.settingsClips = state.settingsClips.filter(clip => clip.id !== button.dataset.removeClip);
+      renderSettingsShelf();
+    });
+  });
+}
+
+function applySettingsClip(id) {
+  const clip = state.settingsClips.find(item => item.id === id);
+  if (!clip || !state.session) return;
+  const previous = settingsSnapshot();
+  state.settings = structuredClone(clip.settings);
+  state.bypassed = new Set(clip.bypassed);
+  pushHistory(previous);
+  syncControls();
+  selectMatchingPreset();
+  schedulePreview(0);
+  toast(`Applied ${clip.look} settings from ${clip.name}`);
 }
 
 function settingsSnapshot() {
@@ -484,12 +605,13 @@ async function renderPreview() {
 }
 
 function alignImageLayers() {
-  const width = elements.original.getBoundingClientRect().width;
+  const width = elements.original.offsetWidth;
   if (width) elements.imageShell.style.setProperty("--image-width", `${width}px`);
 }
 
 function setCompare(value) {
   state.compare = Math.max(0, Math.min(100, value));
+  if (!state.swipeEnabled) return;
   elements.correctedLayer.style.width = `${state.compare}%`;
   elements.compareLine.style.left = `${state.compare}%`;
   elements.compareLine.setAttribute("aria-valuenow", Math.round(state.compare));
@@ -500,14 +622,64 @@ function pointerToCompare(event) {
   setCompare(((event.clientX - rect.left) / rect.width) * 100);
 }
 
-function toggleCompare() {
-  state.compareVisible = !state.compareVisible;
-  $("#compareButton").classList.toggle("active", state.compareVisible);
-  $("#compareButton").setAttribute("aria-pressed", state.compareVisible);
-  elements.compareLine.hidden = !state.compareVisible;
-  $(".before-label").hidden = !state.compareVisible;
-  $(".after-label").hidden = !state.compareVisible;
-  setCompare(state.compareVisible ? 50 : 100);
+function setSwipeEnabled(enabled) {
+  state.swipeEnabled = enabled;
+  state.fullBefore = false;
+  $("#swipeToggle").classList.toggle("active", enabled);
+  $("#swipeToggle").setAttribute("aria-pressed", String(enabled));
+  $("#beforeAfterButton").disabled = enabled;
+  $("#beforeAfterButton").classList.remove("active");
+  $("#beforeAfterButton").setAttribute("aria-pressed", "false");
+  $("#beforeAfterButton").textContent = "Before";
+  elements.compareLine.hidden = !enabled;
+  $(".before-label").hidden = !enabled;
+  $(".after-label").hidden = !enabled;
+  elements.correctedLayer.style.width = enabled ? `${state.compare}%` : "100%";
+}
+
+function toggleFullBefore() {
+  if (state.swipeEnabled) return;
+  state.fullBefore = !state.fullBefore;
+  elements.correctedLayer.style.width = state.fullBefore ? "0%" : "100%";
+  $("#beforeAfterButton").classList.toggle("active", state.fullBefore);
+  $("#beforeAfterButton").setAttribute("aria-pressed", String(state.fullBefore));
+  $("#beforeAfterButton").textContent = state.fullBefore ? "After" : "Before";
+}
+
+function setZoomScale(scale, mode = "manual") {
+  state.zoomScale = Math.max(0.1, Math.min(16, scale));
+  state.zoomMode = mode;
+  elements.imageShell.style.transform = `scale(${state.zoomScale})`;
+  $("#zoomStepButton").textContent = `${Math.round(state.zoomScale * 100)}%`;
+  $$("[data-zoom], #fitButton").forEach(button => {
+    const buttonMode = button.id === "fitButton" ? "fit" : button.dataset.zoom;
+    button.classList.toggle("active", buttonMode === mode);
+  });
+  alignImageLayers();
+}
+
+function setZoomMode(mode) {
+  const baseWidth = elements.original.offsetWidth || 1;
+  const baseHeight = elements.original.offsetHeight || 1;
+  if (mode === "fit") {
+    setZoomScale(1, mode);
+    return;
+  }
+  if (mode === "fill") {
+    const stageStyle = getComputedStyle(elements.editorStage);
+    const availableWidth = elements.editorStage.clientWidth
+      - parseFloat(stageStyle.paddingLeft) - parseFloat(stageStyle.paddingRight);
+    const availableHeight = elements.editorStage.clientHeight
+      - parseFloat(stageStyle.paddingTop) - parseFloat(stageStyle.paddingBottom);
+    setZoomScale(Math.max(availableWidth / baseWidth, availableHeight / baseHeight), mode);
+    return;
+  }
+  const pixelRatio = Number(mode);
+  setZoomScale((elements.original.naturalWidth / baseWidth) * pixelRatio, mode);
+}
+
+function stepZoom(direction) {
+  setZoomScale(state.zoomScale + direction * 0.1);
 }
 
 function resetSettings() {
@@ -564,17 +736,27 @@ function bindEvents() {
   $("#newPhotoButton").addEventListener("click", () => elements.fileInput.click());
   elements.fileInput.addEventListener("change", event => uploadFile(event.target.files[0]));
   $("#homeButton").addEventListener("click", showEmptyState);
-  elements.exportButton.addEventListener("click", () => elements.exportDialog.showModal());
+  elements.exportButton.addEventListener("click", () => {
+    updateExportColorNote();
+    elements.exportDialog.showModal();
+  });
   $$(".close-dialog, .cancel-dialog").forEach(button => {
     button.addEventListener("click", () => elements.exportDialog.close());
   });
   elements.resetButton.addEventListener("click", resetSettings);
+  elements.copySettingsButton.addEventListener("click", copyCurrentSettings);
   elements.undoButton.addEventListener("click", undo);
   elements.redoButton.addEventListener("click", redo);
-  $("#compareButton").addEventListener("click", toggleCompare);
-  $("#fitButton").addEventListener("click", () => {
-    elements.imageShell.animate([{transform: "scale(.985)"}, {transform: "scale(1)"}], {duration: 220});
-    alignImageLayers();
+  $("#swipeToggle").addEventListener("click", () => setSwipeEnabled(!state.swipeEnabled));
+  $("#beforeAfterButton").addEventListener("click", toggleFullBefore);
+  $("#fitButton").addEventListener("click", () => setZoomMode("fit"));
+  $$("[data-zoom]").forEach(button => {
+    button.addEventListener("click", () => setZoomMode(button.dataset.zoom));
+  });
+  $("#zoomStepButton").addEventListener("click", () => stepZoom(1));
+  $("#zoomStepButton").addEventListener("contextmenu", event => {
+    event.preventDefault();
+    stepZoom(-1);
   });
 
   $$(".presets button").forEach(button => button.addEventListener("click", () => applyPreset(button.dataset.preset)));
@@ -634,7 +816,10 @@ function bindEvents() {
     }
   });
 
-  window.addEventListener("resize", alignImageLayers);
+  window.addEventListener("resize", () => {
+    alignImageLayers();
+    if (state.session && state.zoomMode !== "manual") setZoomMode(state.zoomMode);
+  });
   window.addEventListener("keydown", event => {
     const command = event.metaKey || event.ctrlKey;
     if (command && event.key.toLowerCase() === "z") {
@@ -643,11 +828,15 @@ function bindEvents() {
     }
     if (event.key === "\\" && state.session) {
       event.preventDefault();
-      setCompare(event.type === "keydown" ? 0 : 50);
+      if (state.swipeEnabled) setCompare(0);
+      else if (!state.fullBefore) toggleFullBefore();
     }
   });
   window.addEventListener("keyup", event => {
-    if (event.key === "\\" && state.session && state.compareVisible) setCompare(50);
+    if (event.key === "\\" && state.session) {
+      if (state.swipeEnabled) setCompare(50);
+      else if (state.fullBefore) toggleFullBefore();
+    }
   });
 
   ["dragenter", "dragover"].forEach(type => window.addEventListener(type, event => {
@@ -667,9 +856,7 @@ function bindEvents() {
     uploadFile(event.dataTransfer.files[0]);
   });
 
-  $$(".format-options input").forEach(input => input.addEventListener("change", () => {
-    $("#qualityRow").hidden = input.checked && input.value !== "jpeg";
-  }));
+  $$(".format-options input").forEach(input => input.addEventListener("change", updateExportColorNote));
   $("#qualityInput").addEventListener("input", event => { $("#qualityOutput").value = `${event.target.value}%`; });
   $("#exportForm").addEventListener("submit", exportImage);
 }

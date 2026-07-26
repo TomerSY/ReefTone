@@ -38,6 +38,7 @@ def test_upload_preview_and_export(tmp_path, monkeypatch) -> None:
         files={"file": ("small.jpg", image_data.getvalue(), "image/jpeg")},
     )
     assert upload.status_code == 200
+    assert upload.json()["color"]["dynamic_range"] == "SDR"
     session_id = upload.json()["id"]
 
     preview = client.post(f"/api/session/{session_id}/preview", json={"red_recovery": 0.5})
@@ -50,3 +51,10 @@ def test_upload_preview_and_export(tmp_path, monkeypatch) -> None:
     )
     assert exported.status_code == 200
     assert exported.content.startswith(b"\xff\xd8")
+
+    heic = client.post(
+        f"/api/session/{session_id}/export",
+        json={"format": "heic", "quality": 90},
+    )
+    assert heic.status_code == 200
+    assert b"ftyp" in heic.content[:32]
