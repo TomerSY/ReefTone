@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#08110f">
+  <meta name="description" content="ReefTone — adaptive underwater color restoration.">
+  <title>ReefTone Studio</title>
+  <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <div class="app" id="app">
+    <header class="topbar">
+      <button class="brand" type="button" id="homeButton" aria-label="ReefTone home">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 32 32"><path d="M5 19c4.4-7.5 9.7-11.2 16-11 2.5.1 4.5.8 6 2-5.8.4-10.1 2.7-13 6.7C11.5 20.2 8.5 22 5 22v-3Z"/><path d="M6 25c5.4-.2 9.2-2 11.6-5.3 2.1-2.9 5.2-4.6 9.4-5.1-1.2 5.6-4.7 9.3-10.4 11.2-4.2 1.4-7.7 1.1-10.6-.8Z"/></svg>
+        </span>
+        <span><strong>ReefTone</strong><small>Studio</small></span>
+      </button>
+
+      <div class="document-title" id="documentTitle" aria-live="polite">
+        <span class="document-name">New restoration</span>
+        <span class="save-state">Ready</span>
+      </div>
+
+      <div class="top-actions">
+        <span class="privacy-pill" title="Your images stay on this computer">
+          <span class="status-dot"></span> Local &amp; private
+        </span>
+        <button class="icon-button" id="undoButton" type="button" disabled aria-label="Undo" title="Undo (⌘Z)">
+          <svg viewBox="0 0 24 24"><path d="M9 7 4 12l5 5"/><path d="M5 12h8a6 6 0 0 1 6 6"/></svg>
+        </button>
+        <button class="icon-button" id="redoButton" type="button" disabled aria-label="Redo" title="Redo (⇧⌘Z)">
+          <svg viewBox="0 0 24 24"><path d="m15 7 5 5-5 5"/><path d="M19 12h-8a6 6 0 0 0-6 6"/></svg>
+        </button>
+        <button class="primary-button" id="exportButton" type="button" disabled>
+          <svg viewBox="0 0 24 24"><path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M5 19h14"/></svg>
+          Export
+        </button>
+      </div>
+    </header>
+
+    <main class="workspace">
+      <section class="canvas-area" aria-label="Image preview">
+        <div class="canvas-toolbar" id="canvasToolbar" hidden>
+          <div class="segmented presets" role="group" aria-label="Looks">
+            <button type="button" class="active" data-preset="natural">Natural</button>
+            <button type="button" data-preset="vivid">Vivid</button>
+            <button type="button" data-preset="deep">Deep water</button>
+            <button type="button" data-preset="gentle">Gentle</button>
+          </div>
+          <div class="toolbar-right">
+            <button class="tool-button active" id="compareButton" type="button" aria-pressed="true">
+              <svg viewBox="0 0 24 24"><path d="M12 3v18"/><rect x="3" y="5" width="18" height="14" rx="2"/></svg>
+              Compare
+            </button>
+            <button class="tool-button" id="fitButton" type="button">
+              <svg viewBox="0 0 24 24"><path d="M8 3H3v5m13-5h5v5M8 21H3v-5m13 5h5v-5"/></svg>
+              Fit
+            </button>
+          </div>
+        </div>
+
+        <div class="empty-state" id="emptyState">
+          <div class="empty-visual" aria-hidden="true">
+            <div class="orb orb-one"></div>
+            <div class="orb orb-two"></div>
+            <svg viewBox="0 0 180 140">
+              <defs>
+                <linearGradient id="photoFill" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0" stop-color="#235f62"/>
+                  <stop offset="1" stop-color="#0c282b"/>
+                </linearGradient>
+              </defs>
+              <rect x="25" y="14" width="130" height="108" rx="14" fill="url(#photoFill)" stroke="#5dc8b5" stroke-opacity=".35"/>
+              <circle cx="65" cy="50" r="12" fill="#d8f9e8" fill-opacity=".72"/>
+              <path d="m35 105 36-36 22 20 15-14 37 30H35Z" fill="#74d0ba" fill-opacity=".48"/>
+              <path d="M88 42c19 10 32 25 39 45" fill="none" stroke="#d8f9e8" stroke-opacity=".5" stroke-width="3" stroke-linecap="round"/>
+              <path d="m119 77 9 11 2-14" fill="none" stroke="#d8f9e8" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <p class="eyebrow">Your underwater darkroom</p>
+          <h1>Bring the reef back to life.</h1>
+          <p>Drop a HEIC or JPEG here. ReefTone reads the water cast, restores lost color, and gives you the final say.</p>
+          <div class="empty-actions">
+            <button class="primary-button large" id="chooseButton" type="button">
+              <svg viewBox="0 0 24 24"><path d="M12 16V4m0 0L8 8m4-4 4 4"/><path d="M5 20h14"/></svg>
+              Choose a photo
+            </button>
+            <span>or drop it anywhere</span>
+          </div>
+          <div class="format-row">
+            <span>HEIC · 10-bit aware</span><i></i><span>JPEG · PNG · TIFF</span><i></i><span>Local processing</span>
+          </div>
+          <div class="library-section" id="librarySection" hidden>
+            <div class="library-heading"><span>Photos in this folder</span><span id="libraryCount"></span></div>
+            <div class="library-grid" id="libraryGrid"></div>
+          </div>
+        </div>
+
+        <div class="editor-stage" id="editorStage" hidden>
+          <div class="image-shell" id="imageShell">
+            <img id="originalImage" alt="Original underwater photo">
+            <div class="corrected-layer" id="correctedLayer">
+              <img id="correctedImage" alt="Color-corrected underwater photo">
+            </div>
+            <div class="compare-line" id="compareLine" role="slider" tabindex="0" aria-label="Before and after comparison" aria-valuemin="0" aria-valuemax="100" aria-valuenow="50">
+              <span class="compare-handle">
+                <svg viewBox="0 0 24 24"><path d="m9 8-4 4 4 4m6-8 4 4-4 4"/></svg>
+              </span>
+            </div>
+            <span class="image-label before-label">Before</span>
+            <span class="image-label after-label">After</span>
+            <div class="processing-overlay" id="processingOverlay" aria-live="polite">
+              <span class="spinner"></span><span>Refining preview</span>
+            </div>
+          </div>
+          <div class="image-meta" id="imageMeta"></div>
+        </div>
+
+        <div class="drop-overlay" id="dropOverlay">
+          <div><svg viewBox="0 0 24 24"><path d="M12 16V4m0 0L8 8m4-4 4 4"/><path d="M5 20h14"/></svg><strong>Drop to restore</strong><span>Your original stays untouched</span></div>
+        </div>
+      </section>
+
+      <aside class="inspector" id="inspector" aria-label="Correction controls">
+        <div class="inspector-header">
+          <div>
+            <p class="eyebrow">Adjustments</p>
+            <h2>Color restoration</h2>
+          </div>
+          <button class="text-button" id="resetButton" type="button" disabled>Reset</button>
+        </div>
+
+        <div class="analysis-card" id="analysisCard">
+          <div class="analysis-icon">
+            <svg viewBox="0 0 24 24"><path d="M12 3c3.7 4.6 5.5 8.1 5.5 10.5a5.5 5.5 0 0 1-11 0C6.5 11.1 8.3 7.6 12 3Z"/><path d="M9.5 15.5c.7 1 1.5 1.5 2.5 1.5"/></svg>
+          </div>
+          <div><span id="analysisLabel">Awaiting a photo</span><small id="analysisText">Auto Restore adapts to each water profile.</small></div>
+          <span class="confidence" id="confidenceBadge">AUTO</span>
+        </div>
+
+        <div class="controls-scroll">
+          <section class="control-section">
+            <div class="section-heading">
+              <div><h3>Auto Restore</h3><p>Scene-aware color recovery</p></div>
+              <label class="switch"><input type="checkbox" id="autoToggle" checked><span></span></label>
+            </div>
+            <div class="control-list">
+              <label class="slider-control">
+                <span>Strength</span><output data-output="auto_restore">82</output>
+                <input data-setting="auto_restore" type="range" min="0" max="1" step=".01" value=".82">
+              </label>
+              <label class="slider-control master-control">
+                <span>Overall mix</span><output data-output="master">100</output>
+                <input data-setting="master" type="range" min="0" max="1" step=".01" value="1">
+              </label>
+            </div>
+          </section>
+
+          <section class="control-section">
+            <button class="section-toggle" type="button" aria-expanded="true">
+              <span><h3>Water balance</h3><p>Recover absorbed wavelengths</p></span>
+              <svg viewBox="0 0 24 24"><path d="m8 10 4 4 4-4"/></svg>
+            </button>
+            <div class="control-list section-content">
+              <label class="slider-control">
+                <span>Red recovery</span><output data-output="red_recovery">78</output>
+                <input data-setting="red_recovery" type="range" min="0" max="1.5" step=".01" value=".78">
+              </label>
+              <label class="slider-control bipolar">
+                <span>Blue balance</span><output data-output="blue_balance">+35</output>
+                <input data-setting="blue_balance" type="range" min="-1" max="1" step=".01" value=".35">
+              </label>
+              <label class="slider-control">
+                <span>Water clarity</span><output data-output="dehaze">24</output>
+                <input data-setting="dehaze" type="range" min="0" max="1" step=".01" value=".24">
+              </label>
+              <label class="slider-control bipolar">
+                <span>Temperature</span><output data-output="temperature">0</output>
+                <input data-setting="temperature" type="range" min="-1" max="1" step=".01" value="0">
+              </label>
+              <label class="slider-control bipolar">
+                <span>Tint</span><output data-output="tint">0</output>
+                <input data-setting="tint" type="range" min="-1" max="1" step=".01" value="0">
+              </label>
+            </div>
+          </section>
+
+          <section class="control-section">
+            <button class="section-toggle" type="button" aria-expanded="true">
+              <span><h3>Light</h3><p>Tone and dynamic range</p></span>
+              <svg viewBox="0 0 24 24"><path d="m8 10 4 4 4-4"/></svg>
+            </button>
+            <div class="control-list section-content">
+              <label class="slider-control bipolar">
+                <span>Exposure</span><output data-output="exposure">0.00</output>
+                <input data-setting="exposure" type="range" min="-2" max="2" step=".01" value="0">
+              </label>
+              <label class="slider-control bipolar">
+                <span>Contrast</span><output data-output="contrast">+8</output>
+                <input data-setting="contrast" type="range" min="-.5" max=".8" step=".01" value=".08">
+              </label>
+              <label class="slider-control bipolar">
+                <span>Highlights</span><output data-output="highlights">−8</output>
+                <input data-setting="highlights" type="range" min="-1" max="1" step=".01" value="-.08">
+              </label>
+              <label class="slider-control bipolar">
+                <span>Shadows</span><output data-output="shadows">+12</output>
+                <input data-setting="shadows" type="range" min="-1" max="1" step=".01" value=".12">
+              </label>
+            </div>
+          </section>
+
+          <section class="control-section">
+            <button class="section-toggle" type="button" aria-expanded="true">
+              <span><h3>Presence</h3><p>Color and fine detail</p></span>
+              <svg viewBox="0 0 24 24"><path d="m8 10 4 4 4-4"/></svg>
+            </button>
+            <div class="control-list section-content">
+              <label class="slider-control bipolar">
+                <span>Saturation</span><output data-output="saturation">+4</output>
+                <input data-setting="saturation" type="range" min="-1" max="1" step=".01" value=".04">
+              </label>
+              <label class="slider-control bipolar">
+                <span>Vibrance</span><output data-output="vibrance">+18</output>
+                <input data-setting="vibrance" type="range" min="-1" max="1" step=".01" value=".18">
+              </label>
+              <label class="slider-control bipolar">
+                <span>Clarity</span><output data-output="clarity">+12</output>
+                <input data-setting="clarity" type="range" min="-1" max="1" step=".01" value=".12">
+              </label>
+              <label class="slider-control">
+                <span>Denoise</span><output data-output="denoise">4</output>
+                <input data-setting="denoise" type="range" min="0" max="1" step=".01" value=".04">
+              </label>
+            </div>
+          </section>
+        </div>
+
+        <footer class="inspector-footer">
+          <button class="secondary-button" id="newPhotoButton" type="button">
+            <svg viewBox="0 0 24 24"><path d="M12 16V4m0 0L8 8m4-4 4 4"/><path d="M5 20h14"/></svg>
+            Open another photo
+          </button>
+        </footer>
+      </aside>
+    </main>
+  </div>
+
+  <input id="fileInput" type="file" accept=".heic,.heif,.jpg,.jpeg,.png,.tif,.tiff,image/heic,image/heif,image/jpeg,image/png,image/tiff" hidden>
+
+  <dialog class="export-dialog" id="exportDialog">
+    <form method="dialog" id="exportForm">
+      <div class="dialog-header">
+        <div><p class="eyebrow">Finish</p><h2>Export your restoration</h2></div>
+        <button class="icon-button close-dialog" type="button" aria-label="Close export dialog">
+          <svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg>
+        </button>
+      </div>
+      <div class="dialog-body">
+        <fieldset>
+          <legend>Format</legend>
+          <div class="format-options">
+            <label><input type="radio" name="format" value="jpeg" checked><span><strong>JPEG</strong><small>Small, universal</small></span></label>
+            <label><input type="radio" name="format" value="png"><span><strong>PNG</strong><small>Lossless, 8-bit</small></span></label>
+            <label><input type="radio" name="format" value="tiff"><span><strong>TIFF</strong><small>16-bit master</small></span></label>
+          </div>
+        </fieldset>
+        <label class="quality-row" id="qualityRow">
+          <span><strong>Quality</strong><output id="qualityOutput">95%</output></span>
+          <input id="qualityInput" type="range" min="70" max="100" value="95">
+        </label>
+        <div class="export-note">
+          <svg viewBox="0 0 24 24"><path d="M12 3v18M3 12h18"/><circle cx="12" cy="12" r="9"/></svg>
+          <span>Full resolution is processed during export. The original file is never changed.</span>
+        </div>
+      </div>
+      <div class="dialog-actions">
+        <button class="secondary-button cancel-dialog" type="button">Cancel</button>
+        <button class="primary-button" id="downloadButton" value="default">
+          <span class="button-label">Export photo</span><span class="button-loading"><i class="spinner"></i> Processing full resolution</span>
+        </button>
+      </div>
+    </form>
+  </dialog>
+
+  <div class="toast-region" id="toastRegion" aria-live="polite"></div>
+  <script src="/static/app.js" defer></script>
+</body>
+</html>
