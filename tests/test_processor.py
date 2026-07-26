@@ -46,21 +46,41 @@ def test_accepts_uint8_input() -> None:
     assert result.shape == source.shape
 
 
-def test_dramatic_preset_builds_subject_background_separation() -> None:
+def test_dramatic_preset_has_stronger_tonal_separation_than_gentle() -> None:
     source = teal_test_image(160, 220)
-    # Add a warm, textured central subject to exercise the soft attention mask.
     source[50:120, 70:155, 0] += 0.26
     source[50:120:2, 70:155:2, 1] += 0.12
     source = np.clip(source, 0, 1)
-    result = correct_image(source, PRESETS["dramatic"])
-    center = result[60:110, 85:140].mean()
-    edge = np.concatenate(
-        [
-            result[:35].reshape(-1, 3),
-            result[-35:].reshape(-1, 3),
-            result[:, :35].reshape(-1, 3),
-            result[:, -35:].reshape(-1, 3),
-        ]
-    ).mean()
-    assert center > edge
-    assert np.isfinite(result).all()
+    dramatic = correct_image(source, PRESETS["dramatic"])
+    gentle = correct_image(source, PRESETS["gentle"])
+    dramatic_range = np.percentile(dramatic, 95) - np.percentile(dramatic, 5)
+    gentle_range = np.percentile(gentle, 95) - np.percentile(gentle, 5)
+    assert dramatic_range > gentle_range
+    assert np.mean(np.abs(dramatic - gentle)) > 0.05
+    assert np.isfinite(dramatic).all()
+
+
+def test_sampled_neutral_point_changes_channel_balance() -> None:
+    source = teal_test_image()
+    settings = CorrectionSettings(
+        auto_restore=0,
+        red_recovery=0,
+        dehaze=0,
+        contrast=0,
+        black_point=0,
+        white_point=0,
+        highlights=0,
+        shadows=0,
+        saturation=0,
+        vibrance=0,
+        clarity=0,
+        denoise=0,
+        sample_red=0.2,
+        sample_green=0.5,
+        sample_blue=0.6,
+        sample_strength=1,
+    )
+    corrected = correct_image(source, settings)
+    before_ratio = float(source[..., 0].mean() / source[..., 1].mean())
+    after_ratio = float(corrected[..., 0].mean() / corrected[..., 1].mean())
+    assert after_ratio > before_ratio * 1.8

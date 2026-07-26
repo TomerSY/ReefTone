@@ -11,25 +11,26 @@ class CorrectionSettings:
     """All controls use stable, UI-friendly ranges and are safe to serialize."""
 
     master: float = 1.0
-    auto_restore: float = 0.82
-    red_recovery: float = 0.78
-    blue_balance: float = 0.35
-    dehaze: float = 0.24
-    temperature: float = 0.0
-    tint: float = 0.0
+    auto_restore: float = 0.90
+    red_recovery: float = 0.95
+    blue_balance: float = 0.24
+    dehaze: float = 0.38
+    temperature: float = 0.04
+    tint: float = 0.01
     exposure: float = 0.0
-    contrast: float = 0.08
-    highlights: float = -0.08
-    shadows: float = 0.12
-    saturation: float = 0.04
-    vibrance: float = 0.18
-    clarity: float = 0.12
-    denoise: float = 0.04
-    water_depth: float = 0.0
-    subject_focus: float = 0.0
-    background_depth: float = 0.0
-    top_gradient: float = 0.0
-    vignette: float = 0.0
+    contrast: float = 0.22
+    black_point: float = 0.08
+    white_point: float = 0.04
+    highlights: float = -0.14
+    shadows: float = 0.10
+    saturation: float = 0.05
+    vibrance: float = 0.22
+    clarity: float = 0.16
+    denoise: float = 0.03
+    sample_red: float = 0.0
+    sample_green: float = 0.0
+    sample_blue: float = 0.0
+    sample_strength: float = 0.0
 
     RANGES = {
         "master": (0.0, 1.0),
@@ -41,17 +42,18 @@ class CorrectionSettings:
         "tint": (-1.0, 1.0),
         "exposure": (-2.0, 2.0),
         "contrast": (-0.5, 0.8),
+        "black_point": (-0.5, 0.5),
+        "white_point": (-0.5, 0.5),
         "highlights": (-1.0, 1.0),
         "shadows": (-1.0, 1.0),
         "saturation": (-1.0, 1.0),
         "vibrance": (-1.0, 1.0),
         "clarity": (-1.0, 1.0),
         "denoise": (0.0, 1.0),
-        "water_depth": (0.0, 1.0),
-        "subject_focus": (0.0, 1.0),
-        "background_depth": (0.0, 1.0),
-        "top_gradient": (0.0, 1.0),
-        "vignette": (0.0, 1.0),
+        "sample_red": (0.0, 1.0),
+        "sample_green": (0.0, 1.0),
+        "sample_blue": (0.0, 1.0),
+        "sample_strength": (0.0, 1.0),
     }
 
     @classmethod
@@ -77,57 +79,72 @@ class CorrectionSettings:
 PRESETS: dict[str, CorrectionSettings] = {
     "natural": CorrectionSettings(),
     "vivid": CorrectionSettings(
-        auto_restore=0.92,
-        red_recovery=0.92,
-        dehaze=0.34,
-        contrast=0.16,
-        shadows=0.16,
-        saturation=0.12,
-        vibrance=0.30,
-        clarity=0.20,
+        auto_restore=0.96,
+        red_recovery=1.05,
+        blue_balance=0.05,
+        dehaze=0.58,
+        temperature=0.06,
+        exposure=0.08,
+        contrast=0.30,
+        black_point=0.13,
+        white_point=0.06,
+        highlights=-0.18,
+        shadows=0.14,
+        saturation=0.28,
+        vibrance=0.55,
+        clarity=0.25,
     ),
     "deep": CorrectionSettings(
         auto_restore=1.0,
-        red_recovery=1.08,
-        blue_balance=0.50,
-        dehaze=0.46,
-        exposure=0.12,
-        contrast=0.18,
-        shadows=0.25,
-        vibrance=0.24,
-        clarity=0.22,
-        denoise=0.10,
+        red_recovery=1.30,
+        blue_balance=0.58,
+        dehaze=0.68,
+        temperature=0.12,
+        tint=0.05,
+        exposure=0.10,
+        contrast=0.34,
+        black_point=0.14,
+        white_point=0.08,
+        highlights=-0.24,
+        shadows=0.22,
+        saturation=0.08,
+        vibrance=0.30,
+        clarity=0.30,
+        denoise=0.08,
     ),
     "gentle": CorrectionSettings(
-        master=0.72,
-        auto_restore=0.70,
-        red_recovery=0.62,
-        dehaze=0.14,
-        contrast=0.04,
-        shadows=0.08,
-        saturation=0.02,
-        vibrance=0.10,
-        clarity=0.05,
+        master=0.62,
+        auto_restore=0.58,
+        red_recovery=0.48,
+        blue_balance=0.08,
+        dehaze=0.10,
+        temperature=0.02,
+        contrast=0.06,
+        black_point=0.01,
+        white_point=0.0,
+        highlights=-0.05,
+        shadows=0.06,
+        saturation=0.0,
+        vibrance=0.07,
+        clarity=0.03,
+        denoise=0.06,
     ),
     "dramatic": CorrectionSettings(
-        auto_restore=0.68,
-        red_recovery=0.72,
-        blue_balance=0.22,
-        dehaze=0.42,
-        temperature=0.12,
-        tint=0.08,
-        exposure=-0.28,
-        contrast=0.28,
-        highlights=-0.35,
-        shadows=-0.08,
-        saturation=-0.08,
-        vibrance=0.10,
-        clarity=0.24,
+        auto_restore=1.0,
+        red_recovery=1.15,
+        blue_balance=0.05,
+        dehaze=0.82,
+        temperature=0.16,
+        tint=0.07,
+        exposure=-0.12,
+        contrast=0.48,
+        black_point=0.18,
+        white_point=0.10,
+        highlights=-0.42,
+        shadows=0.02,
+        saturation=-0.02,
+        vibrance=0.34,
+        clarity=0.42,
         denoise=0.03,
-        water_depth=0.62,
-        subject_focus=0.78,
-        background_depth=0.62,
-        top_gradient=0.55,
-        vignette=0.34,
     ),
 }

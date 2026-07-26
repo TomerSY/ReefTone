@@ -165,7 +165,7 @@ h1, h2, h3, p { margin-top: 0; }
 .switch input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 .control-list { display: grid; gap: 16px; }
-.slider-control { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 8px; color: #c8d7d2; font-size: 10px; }
+.slider-control { display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 7px; color: #c8d7d2; font-size: 10px; transition: opacity .16s; }
 .slider-control output { min-width: 30px; color: var(--muted); font-variant-numeric: tabular-nums; text-align: right; }
 .slider-control input { grid-column: 1 / -1; width: 100%; height: 16px; margin: -3px 0 0; appearance: none; background: transparent; cursor: ew-resize; }
 .slider-control input::-webkit-slider-runnable-track { height: 3px; border-radius: 99px; background: linear-gradient(to right, var(--accent) var(--fill, 50%), #283732 var(--fill, 50%)); }
@@ -173,7 +173,49 @@ h1, h2, h3, p { margin-top: 0; }
 .slider-control input::-webkit-slider-thumb { width: 12px; height: 12px; margin-top: -4.5px; appearance: none; border: 2px solid #0d1816; border-radius: 50%; background: #c9f7eb; box-shadow: 0 0 0 1px rgba(108,224,196,.35), 0 2px 5px rgba(0,0,0,.35); }
 .slider-control input:focus-visible { outline: none; }
 .slider-control input:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 3px rgba(108,224,196,.28); }
+.control-actions { display: inline-flex; align-items: center; gap: 2px; }
+.mini-control {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border-radius: 5px;
+  color: var(--muted-2);
+  background: transparent;
+  cursor: pointer;
+}
+.mini-control svg { width: 12px; }
+.mini-control:hover { color: var(--text); background: var(--surface-3); }
+.mini-control:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.slider-control.bypassed > span:first-child,
+.slider-control.bypassed output,
+.slider-control.bypassed input { opacity: .34; }
+.slider-control.bypassed .bypass-control { color: var(--accent); background: rgba(108,224,196,.10); }
 .master-control { padding-top: 2px; }
+
+.balance-heading { align-items: flex-start; }
+.eyedropper-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 27px;
+  padding: 0 8px;
+  border: 1px solid var(--line-strong);
+  border-radius: 7px;
+  color: var(--muted);
+  background: var(--surface-2);
+  font-size: 8px;
+  font-weight: 650;
+  cursor: pointer;
+}
+.eyedropper-button svg { width: 13px; }
+.eyedropper-button:hover, .eyedropper-button.active { color: var(--accent-strong); border-color: rgba(108,224,196,.42); background: rgba(47,122,104,.16); }
+.sample-status { display: flex; align-items: center; gap: 7px; margin: -7px 0 14px; padding: 7px 8px; border-radius: 7px; color: var(--muted); background: rgba(108,224,196,.06); font-size: 8px; }
+.sample-status[hidden] { display: none; }
+.sample-status > span:nth-child(2) { flex: 1; }
+.sample-swatch { width: 12px; height: 12px; border: 1px solid rgba(255,255,255,.38); border-radius: 3px; box-shadow: 0 1px 3px rgba(0,0,0,.3); }
+.sample-status button { padding: 2px 3px; color: var(--accent); background: transparent; font-size: 8px; cursor: pointer; }
 
 .inspector-footer { padding: 12px 16px; border-top: 1px solid var(--line); background: rgba(10,19,17,.9); }
 .secondary-button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 36px; padding: 0 14px; border: 1px solid var(--line-strong); border-radius: 9px; color: #c9d9d4; background: var(--surface-2); font-size: 11px; font-weight: 650; cursor: pointer; }
@@ -215,6 +257,8 @@ h1, h2, h3, p { margin-top: 0; }
 
 .editor-stage { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 68px 36px 48px; }
 .image-shell { position: relative; max-width: 100%; max-height: 100%; border-radius: 8px; overflow: hidden; background: #040807; box-shadow: 0 26px 80px rgba(0,0,0,.52), 0 0 0 1px rgba(255,255,255,.09); }
+.image-shell.sampling { cursor: crosshair; box-shadow: 0 26px 80px rgba(0,0,0,.52), 0 0 0 2px var(--accent); }
+.image-shell.sampling .compare-line { pointer-events: none; }
 .image-shell > img { display: block; max-width: 100%; max-height: calc(100vh - 182px); width: auto; height: auto; object-fit: contain; user-select: none; }
 .corrected-layer { position: absolute; inset: 0; width: 50%; overflow: hidden; }
 .corrected-layer img { display: block; width: var(--image-width, auto); height: 100%; max-width: none; object-fit: contain; user-select: none; }
@@ -225,6 +269,9 @@ h1, h2, h3, p { margin-top: 0; }
 .image-label { position: absolute; z-index: 3; top: 12px; padding: 5px 7px; border-radius: 5px; color: rgba(255,255,255,.86); background: rgba(0,0,0,.38); font-size: 8px; font-weight: 750; letter-spacing: .08em; text-transform: uppercase; backdrop-filter: blur(6px); }
 .before-label { right: 12px; }
 .after-label { left: 12px; }
+.sample-marker { position: absolute; z-index: 8; width: 17px; height: 17px; transform: translate(-50%, -50%); border: 2px solid white; border-radius: 50%; box-shadow: 0 0 0 2px rgba(0,0,0,.65), 0 3px 10px rgba(0,0,0,.4); pointer-events: none; }
+.sample-marker::after { content: ""; position: absolute; inset: 5px; border-radius: 50%; background: var(--accent); }
+.sample-marker[hidden] { display: none; }
 .processing-overlay { position: absolute; z-index: 6; inset: 0; display: flex; align-items: flex-end; justify-content: center; gap: 8px; padding-bottom: 17px; color: rgba(255,255,255,.85); background: rgba(5,13,11,.08); font-size: 9px; opacity: 0; pointer-events: none; transition: opacity .18s; }
 .processing-overlay.visible { opacity: 1; }
 .spinner { display: inline-block; width: 13px; height: 13px; border: 2px solid rgba(255,255,255,.25); border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; }
@@ -303,4 +350,3 @@ legend { margin-bottom: 10px; color: var(--muted); font-size: 10px; font-weight:
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }
-

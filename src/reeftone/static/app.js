@@ -1,10 +1,12 @@
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
+const APP_VERSION = "0.3.0";
 
 const state = {
   session: null,
   settings: {},
   presets: {},
+  bypassed: new Set(),
   history: [],
   future: [],
   compare: 50,
@@ -14,6 +16,7 @@ const state = {
   previewUrl: null,
   originalUrl: null,
   dragDepth: 0,
+  sampling: false,
 };
 
 const elements = {
@@ -41,6 +44,8 @@ const elements = {
   imageMeta: $("#imageMeta"),
   exportDialog: $("#exportDialog"),
   downloadButton: $("#downloadButton"),
+  eyedropperButton: $("#eyedropperButton"),
+  sampleMarker: $("#sampleMarker"),
 };
 
 function formatBytes(bytes) {
@@ -83,10 +88,15 @@ async function api(url, options = {}) {
 
 async function loadInitialData() {
   try {
-    const [presetResponse, libraryResponse] = await Promise.all([
+    const [healthResponse, presetResponse, libraryResponse] = await Promise.all([
+      api("/api/health"),
       api("/api/presets"),
       api("/api/library"),
     ]);
+    const health = await healthResponse.json();
+    if (health.version !== APP_VERSION) {
+      toast(`ReefTone ${APP_VERSION} is ready. Restart the local app to activate it.`, true);
+    }
     state.presets = (await presetResponse.json()).presets;
     state.settings = structuredClone(state.presets.natural);
     syncControls();
@@ -153,6 +163,7 @@ async function activateSession(session) {
   state.session = session;
   state.history = [];
   state.future = [];
+  setSampling(false);
   applyPreset("natural", false);
   elements.emptyState.hidden = true;
   elements.editorStage.hidden = false;
@@ -184,7 +195,29 @@ function setLoadingDocument(text) {
 }
 
 function settingsSnapshot() {
-  return JSON.stringify(state.settings);
+  return JSON.stringify({
+    settings: state.settings,
+    bypassed: [...state.bypassed].sort(),
+  });
+}
+
+function restoreSnapshot(snapshot) {
+  const parsed = JSON.parse(snapshot);
+  if (parsed.settings) {
+    state.settings = parsed.settings;
+    state.bypassed = new Set(parsed.bypassed || []);
+  } else {
+    state.settings = parsed;
+    state.bypassed = new Set();
+  }
+}
+
+function effectiveSettings() {
+  const effective = structuredClone(state.settings);
+  state.bypassed.forEach(name => {
+    if (Object.hasOwn(effective, name)) effective[name] = 0;
+  });
+  return effective;
 }
 
 function pushHistory(previous) {
@@ -198,7 +231,7 @@ function pushHistory(previous) {
 function undo() {
   if (!state.history.length) return;
   state.future.push(settingsSnapshot());
-  state.settings = JSON.parse(state.history.pop());
+  restoreSnapshot(state.history.pop());
   syncControls();
   selectMatchingPreset();
   updateHistoryButtons();
@@ -208,7 +241,7 @@ function undo() {
 function redo() {
   if (!state.future.length) return;
   state.history.push(settingsSnapshot());
-  state.settings = JSON.parse(state.future.pop());
+  restoreSnapshot(state.future.pop());
   syncControls();
   selectMatchingPreset();
   updateHistoryButtons();
@@ -237,18 +270,31 @@ function updateRangeStyle(input) {
 function syncControls() {
   $$("[data-setting]").forEach(input => {
     const name = input.dataset.setting;
-    input.value = state.settings[name];
+    if (state.settings[name] !== undefined) input.value = state.settings[name];
     updateRangeStyle(input);
     const output = $(`[data-output="${name}"]`);
     if (output) output.value = displayValue(name, Number(input.value));
+    const control = input.closest(".slider-control");
+    const bypassed = state.bypassed.has(name);
+    control?.classList.toggle("bypassed", bypassed);
+    const bypassButton = control?.querySelector(".bypass-control");
+    if (bypassButton) {
+      bypassButton.setAttribute("aria-pressed", String(!bypassed));
+      bypassButton.title = bypassed ? `Enable ${name.replaceAll("_", " ")}` : `Temporarily disable ${name.replaceAll("_", " ")}`;
+    }
   });
   $("#autoToggle").checked = state.settings.auto_restore > 0;
+  syncSampleStatus();
 }
 
 function applyPreset(name, record = true) {
-  if (!state.presets[name]) return;
+  if (!state.presets[name]) {
+    toast(`The ${name} look needs the latest ReefTone server. Restart the app.`, true);
+    return;
+  }
   const previous = settingsSnapshot();
   state.settings = structuredClone(state.presets[name]);
+  state.bypassed.clear();
   if (record) pushHistory(previous);
   syncControls();
   $$(".presets button").forEach(button => button.classList.toggle("active", button.dataset.preset === name));
@@ -260,12 +306,138 @@ function clearPresetSelection() {
 }
 
 function selectMatchingPreset() {
-  const match = Object.entries(state.presets).find(([, settings]) =>
+  const match = state.bypassed.size ? null : Object.entries(state.presets).find(([, settings]) =>
     Object.keys(state.settings).every(key => state.settings[key] === settings[key])
   );
   $$(".presets button").forEach(button => {
     button.classList.toggle("active", Boolean(match) && button.dataset.preset === match[0]);
   });
+}
+
+function addPerControlActions() {
+  $$("[data-setting]").forEach(input => {
+    const control = input.closest(".slider-control");
+    if (!control || control.querySelector(".control-actions")) return;
+    const name = input.dataset.setting;
+    const readable = name.replaceAll("_", " ");
+    const actions = document.createElement("span");
+    actions.className = "control-actions";
+    actions.innerHTML = `
+      <button class="mini-control reset-control" type="button" title="Reset ${readable} to zero" aria-label="Reset ${readable} to zero">
+        <svg viewBox="0 0 24 24"><path d="M5 8v5h5"/><path d="M6.4 16a7 7 0 1 0 .2-8.2L5 10"/></svg>
+      </button>
+      <button class="mini-control bypass-control" type="button" title="Temporarily disable ${readable}" aria-label="Toggle ${readable}" aria-pressed="true">
+        <svg viewBox="0 0 24 24"><path d="M2.5 12s3.5-5 9.5-5 9.5 5 9.5 5-3.5 5-9.5 5-9.5-5-9.5-5Z"/><circle cx="12" cy="12" r="2.5"/></svg>
+      </button>`;
+    control.insertBefore(actions, input);
+
+    $(".reset-control", actions).addEventListener("click", event => {
+      event.preventDefault();
+      event.stopPropagation();
+      const previous = settingsSnapshot();
+      state.settings[name] = 0;
+      state.bypassed.delete(name);
+      pushHistory(previous);
+      syncControls();
+      clearPresetSelection();
+      schedulePreview(0);
+    });
+    $(".bypass-control", actions).addEventListener("click", event => {
+      event.preventDefault();
+      event.stopPropagation();
+      const previous = settingsSnapshot();
+      if (state.bypassed.has(name)) state.bypassed.delete(name);
+      else state.bypassed.add(name);
+      pushHistory(previous);
+      syncControls();
+      clearPresetSelection();
+      schedulePreview(0);
+    });
+  });
+}
+
+function syncSampleStatus() {
+  const active = Number(state.settings.sample_strength || 0) > 0;
+  $("#sampleStatus").hidden = !active;
+  elements.sampleMarker.hidden = !active;
+  if (!active) return;
+  const rgb = ["sample_red", "sample_green", "sample_blue"].map(name =>
+    Math.round(Number(state.settings[name] || 0) * 255)
+  );
+  $("#sampleSwatch").style.backgroundColor = `rgb(${rgb.join(",")})`;
+}
+
+function setSampling(enabled) {
+  state.sampling = enabled;
+  elements.imageShell.classList.toggle("sampling", enabled);
+  elements.eyedropperButton.classList.toggle("active", enabled);
+  elements.eyedropperButton.setAttribute("aria-pressed", String(enabled));
+  elements.eyedropperButton.textContent = enabled ? "Click a neutral spot" : "";
+  if (!enabled) {
+    elements.eyedropperButton.innerHTML = `
+      <svg viewBox="0 0 24 24"><path d="m19 3 2 2-8.5 8.5-3-3L18 2a1.4 1.4 0 0 1 2 0Z"/><path d="m8.5 11.5-5 5v4h4l5-5"/><path d="M4 20h4"/></svg>
+      Sample neutral`;
+  }
+}
+
+function sampleNeutralPoint(event) {
+  if (!state.sampling || !state.session) return;
+  event.preventDefault();
+  const rect = elements.original.getBoundingClientRect();
+  if (
+    event.clientX < rect.left || event.clientX > rect.right
+    || event.clientY < rect.top || event.clientY > rect.bottom
+  ) return;
+
+  const xRatio = (event.clientX - rect.left) / rect.width;
+  const yRatio = (event.clientY - rect.top) / rect.height;
+  const sourceX = xRatio * elements.original.naturalWidth;
+  const sourceY = yRatio * elements.original.naturalHeight;
+  const radius = Math.max(2, Math.round(Math.min(
+    elements.original.naturalWidth / rect.width,
+    elements.original.naturalHeight / rect.height,
+  ) * 4));
+  const canvas = document.createElement("canvas");
+  canvas.width = 1;
+  canvas.height = 1;
+  const context = canvas.getContext("2d", {willReadFrequently: true});
+  context.drawImage(
+    elements.original,
+    sourceX - radius,
+    sourceY - radius,
+    radius * 2 + 1,
+    radius * 2 + 1,
+    0,
+    0,
+    1,
+    1,
+  );
+  const [red, green, blue] = context.getImageData(0, 0, 1, 1).data;
+  const previous = settingsSnapshot();
+  state.settings.sample_red = red / 255;
+  state.settings.sample_green = green / 255;
+  state.settings.sample_blue = blue / 255;
+  state.settings.sample_strength = 1;
+  pushHistory(previous);
+  elements.sampleMarker.style.left = `${xRatio * 100}%`;
+  elements.sampleMarker.style.top = `${yRatio * 100}%`;
+  syncSampleStatus();
+  setSampling(false);
+  clearPresetSelection();
+  schedulePreview(0);
+  toast("Neutral point sampled");
+}
+
+function clearSample() {
+  const previous = settingsSnapshot();
+  state.settings.sample_red = 0;
+  state.settings.sample_green = 0;
+  state.settings.sample_blue = 0;
+  state.settings.sample_strength = 0;
+  pushHistory(previous);
+  syncSampleStatus();
+  setSampling(false);
+  schedulePreview(0);
 }
 
 function schedulePreview(delay = 140) {
@@ -285,7 +457,7 @@ async function renderPreview() {
     const response = await api(`/api/session/${state.session.id}/preview`, {
       method: "POST",
       headers: {"Content-Type": "application/json"},
-      body: JSON.stringify(state.settings),
+      body: JSON.stringify(effectiveSettings()),
       signal: controller.signal,
     });
     const blob = await response.blob();
@@ -359,7 +531,7 @@ async function exportImage(event) {
     const response = await api(`/api/session/${state.session.id}/export`, {
       method: "POST",
       headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({...state.settings, format, quality}),
+      body: JSON.stringify({...effectiveSettings(), format, quality}),
     });
     const blob = await response.blob();
     const disposition = response.headers.get("Content-Disposition") || "";
@@ -406,6 +578,13 @@ function bindEvents() {
   });
 
   $$(".presets button").forEach(button => button.addEventListener("click", () => applyPreset(button.dataset.preset)));
+  elements.eyedropperButton.addEventListener("click", () => {
+    if (!state.session) return;
+    setSampling(!state.sampling);
+    if (state.sampling) toast("Click a gray, white, or neutral area in the photo");
+  });
+  $("#clearSampleButton").addEventListener("click", clearSample);
+  elements.imageShell.addEventListener("click", sampleNeutralPoint);
   $$(".section-toggle").forEach(button => button.addEventListener("click", () => {
     button.setAttribute("aria-expanded", button.getAttribute("aria-expanded") !== "true");
   }));
@@ -417,6 +596,7 @@ function bindEvents() {
     input.addEventListener("input", () => {
       const name = input.dataset.setting;
       state.settings[name] = Number(input.value);
+      state.bypassed.delete(name);
       updateRangeStyle(input);
       $(`[data-output="${name}"]`).value = displayValue(name, Number(input.value));
       clearPresetSelection();
@@ -431,7 +611,8 @@ function bindEvents() {
 
   $("#autoToggle").addEventListener("change", event => {
     const previous = settingsSnapshot();
-    state.settings.auto_restore = event.target.checked ? 0.82 : 0;
+    state.settings.auto_restore = event.target.checked ? state.presets.natural.auto_restore : 0;
+    state.bypassed.delete("auto_restore");
     pushHistory(previous);
     syncControls();
     clearPresetSelection();
@@ -493,5 +674,6 @@ function bindEvents() {
   $("#exportForm").addEventListener("submit", exportImage);
 }
 
+addPerControlActions();
 bindEvents();
 loadInitialData();

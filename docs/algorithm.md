@@ -1,128 +1,133 @@
 # Correction algorithm
 
-## Design goals
+## Design boundary
 
-Underwater restoration is an ill-posed problem: wavelength absorption depends on
-depth, distance, turbidity, lighting, and camera response. ReefTone therefore avoids
-a fixed “add red” filter. It estimates the scene, gates automatic correction by
-confidence, and exposes every high-level artistic control.
+Underwater restoration is ill-posed: attenuation varies with wavelength, range,
+water type, illumination, and camera response. ReefTone 0.3 uses a deterministic
+single-image enhancement pipeline. It does not claim to recover physically measured
+surface colors without range data.
 
-The same deterministic function is used for preview and export.
+This boundary matters. Akkaynak and Treibitz's physically revised underwater image
+model shows that signal attenuation and backscatter are different, range-dependent
+processes. Their Sea-thru method therefore uses RGBD/range data. ReefTone follows
+the depth-free color-balance and fusion family instead of inventing a depth map.
+
+## Research basis
+
+The implementation is primarily based on:
+
+- C. O. Ancuti et al., [Color Balance and Fusion for Underwater Image
+  Enhancement](https://doi.org/10.1109/TIP.2017.2759252), IEEE TIP 2018:
+  underwater red compensation, white balance, two derived inputs, perceptual weight
+  maps, and multiscale fusion.
+- A. Galdran et al., [Automatic Red-Channel Underwater Image
+  Restoration](https://doi.org/10.1016/j.jvcir.2014.11.006), JVCIR 2015:
+  the red-channel prior and the physical motivation for treating red loss
+  differently from atmospheric haze.
+- D. Akkaynak and T. Treibitz, [Sea-thru: A Method for Removing Water From
+  Underwater Images](https://openaccess.thecvf.com/content_CVPR_2019/html/Akkaynak_Sea-Thru_A_Method_for_Removing_Water_From_Underwater_Images_CVPR_2019_paper.html),
+  CVPR 2019: the correct physical limits of restoration without range.
 
 ## Pipeline
 
 ```text
-Decode + orient
-      ↓
-RGB float32 [0, 1]
-      ↓
+Decode + orient → RGB float32
+        ↓
 Robust scene analysis
-      ↓
-Wavelength compensation
-      ↓
-Confidence-gated white balance
-      ↓
-Edge-aware local contrast
-      ↓
-Tone → color → composition → detail
-      ↓
-Non-destructive master mix
+        ↓
+Red compensation + adaptive gray-world balance
+        ↓
+Optional user-sampled neutral-point gains
+        ↓
+Color-balanced branch ─┐
+Contrast/CLAHE branch ─┼→ Gaussian/Laplacian pyramid fusion
+        ↓              ┘
+Exposure → black/white points → tone curve
+        ↓
+Color → clarity/denoise → non-destructive master mix
 ```
+
+The same `correct_image()` function is used for preview, full-resolution export,
+and future video frames.
 
 ### 1. Robust analysis
 
-The image is sampled to at most 512 px on its long edge. Near-black and clipped
-pixels are excluded, then 5th/95th percentile trimming reduces the influence of
-lamps, bubbles, and specular highlights.
+The image is sampled to at most 512 pixels on its long edge. Near-black and clipped
+pixels are excluded, then 5th/95th-percentile trimming limits the influence of
+lamps, bubbles, and specular highlights. ReefTone estimates red attenuation, cyan
+cast, low dynamic range, low light, and underwater confidence.
 
-From the remaining channel distribution, ReefTone estimates:
+### 2. Underwater white balance
 
-- red attenuation relative to green;
-- cyan cast;
-- low dynamic range (a practical haze proxy);
-- low-light severity;
-- confidence that the scene needs underwater-specific correction.
-
-### 2. Wavelength compensation
-
-Red is restored in proportion to the robust green-red gap and attenuated as a pixel
-approaches clipping:
+Red recovery follows the Ancuti-style compensation shape:
 
 ```text
-R' = R + strength × attenuation × (Ḡ - R̄) × (1 - R)
+R' = R + α(Ḡ - R̄)(1 - R)G
 ```
 
-This gives darker, red-depleted regions more recovery while protecting bright red
-subjects. Blue compensation is independently controllable.
+The green term restrains correction in dark water; `(1 - R)` protects existing warm
+highlights. A blue-dominance weight protects saturated blue water from turning
+magenta. After compensation, robust channel means are measured again and a
+confidence-weighted gray-world gain brings red closer to green without forcing the
+entire water column to neutral gray.
 
-### 3. Adaptive white balance
+Temperature and tint are direct creative gains and remain neutral at zero.
 
-The channel distribution is measured again after wavelength compensation, which
-prevents red recovery and white balance from stacking the same correction twice.
-The red target stays intentionally below green to preserve a believable blue water
-column. Gain power is gated by both Auto Restore and underwater confidence, so a
-weak or ambiguous scene is not forced to neutral gray.
+### 3. Neutral-point eyedropper
 
-### 4. Local contrast
+The browser averages a small source-image patch at the chosen point and sends its
+RGB values with the edit settings. The engine computes restrained geometric-gray
+gains from that sample. This is deterministic, affects preview and export equally,
+and can be cleared without changing the other controls.
 
-CLAHE operates on CIE Lab luminance, but its result is blended through a soft
-Laplacian edge weight. Textured reef structure receives useful separation while
-smooth water gradients receive less amplification and are less likely to band.
+### 4. Multiscale fusion
 
-### 5. Tone, color, and detail
+Two inputs are derived from the balanced image:
+
+- a color-preserving branch with controlled chroma expansion;
+- a CIE Lab luminance branch enhanced with CLAHE.
+
+Each branch receives a weight map combining Laplacian contrast, saturation, and
+well-exposedness. Gaussian pyramids soften the weights at every scale; Laplacian
+image pyramids preserve useful edge structure. Reconstructing the weighted levels
+avoids the seams and low-frequency halos of a direct pixel blend. **Fusion clarity**
+controls how strongly the fused result replaces the balanced base.
+
+### 5. Tone, points, color, and detail
 
 - exposure is applied in stops;
 - shadows and highlights use luminance masks;
-- contrast pivots around middle gray;
+- black point and white point remap the endpoints before contrast;
+- contrast uses an exponential mid-gray pivot so small changes are visible;
 - vibrance preferentially affects low-saturation colors;
 - clarity is a mid-frequency unsharp mask;
 - denoise is an edge-preserving bilateral blend.
 
-### 6. Composition and selective color
+### 6. Non-destructive controls
 
-The optional composition stage estimates two soft masks at a bounded 512-pixel
-analysis resolution:
+Every slider has two local actions:
 
-- **Visual attention** combines spectral-residual saliency, color distinctiveness,
-  and a broad center prior. It is a photographic focus estimate, not semantic
-  segmentation.
-- **Open water** combines blue dominance, low local detail, and a loose upper-frame
-  prior. It prevents a dramatic background burn from crushing smooth water.
+- reset sets only that setting to its neutral value of zero;
+- bypass sends zero for that setting while preserving its chosen value.
 
-These masks drive independently adjustable subject lift/warmth, background depth,
-aqua-to-blue color mixing, a graduated top burn, texture, and vignette. Full-size
-masks are feathered, so there are no hard selection edges. This stage transforms
-existing pixels only; it cannot invent or move coral texture.
+Preset values are intentionally separated, and the master mix blends the entire
+corrected result with the untouched source.
 
-### 7. Master mix
+## Precision and limitations
 
-The final corrected result is blended with the untouched float source. This makes
-the full pipeline non-destructive and gives the user a perceptually simple overall
-strength control.
+All processing arithmetic is float32. Export quantizes only in the encoder: JPEG
+and PNG are 8-bit delivery formats, while TIFF is a 16-bit RGB master.
 
-## Precision
-
-All arithmetic is float32. Export quantizes only at the final encoder:
-
-- JPEG: 8-bit RGB, quality control, 4:4:4 chroma
-- PNG: 8-bit lossless RGB
-- TIFF: 16-bit lossless RGB
-
-## Known limitations
-
-- The automatic analysis is statistical, not depth-map or learned restoration.
-- Severely clipped red-channel information cannot be recreated as measured truth.
-- Artificial colored lights may require manual temperature and tint changes.
-- Display-referred HEIC correction is not a replacement for RAW development.
-- Spatially varying water columns are handled conservatively; a future local-depth
-  model can improve foreground/background separation.
-- Visual attention can favor a central reef feature when the true subject is near
-  an edge. Subject focus is optional and fully controllable.
+- Clipped or absent red-channel information cannot be recreated as measured truth.
+- A neutral sample should be gray, white, or known-neutral; sampling colored coral
+  intentionally creates the opposite color cast.
+- Artificial lights may need manual temperature and tint.
+- Display-referred HEIC correction is not RAW development.
+- True range-dependent backscatter removal needs depth/range data.
 
 ## Video extension
 
-`correct_image()` is frame-compatible, but video requires temporal engineering.
-Analysis values and gains must be smoothed over time, with smoothing reset at scene
-cuts. PQ/HLG input must be linearized before correction and returned to the desired
-output transfer function. These requirements are tracked in
+The engine is frame-compatible. Video support still needs scene-cut detection,
+temporal smoothing of analysis and gains, PQ/HLG linearization, and appropriate
+10-bit output encoding. These requirements are tracked in
 [the roadmap](roadmap.md).
