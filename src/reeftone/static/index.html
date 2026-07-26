@@ -5,10 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#08110f">
   <meta name="description" content="ReefTone — adaptive underwater color restoration.">
-  <meta name="reeftone-version" content="0.4.0">
+  <meta name="reeftone-version" content="0.4.1">
   <title>ReefTone Studio</title>
   <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="/static/styles.css?v=0.4.0">
+  <link rel="stylesheet" href="/static/styles.css?v=0.4.1">
 </head>
 <body>
   <div class="app" id="app">
@@ -45,12 +45,28 @@
     <main class="workspace">
       <section class="canvas-area" aria-label="Image preview">
         <div class="canvas-toolbar" id="canvasToolbar" hidden>
-          <div class="segmented presets" role="group" aria-label="Looks">
-            <button type="button" class="active" data-preset="natural">Natural</button>
-            <button type="button" data-preset="vivid">Vivid</button>
-            <button type="button" data-preset="deep">Deep water</button>
-            <button type="button" data-preset="gentle">Gentle</button>
-            <button type="button" data-preset="dramatic">Dramatic</button>
+          <div class="toolbar-left">
+            <div class="segmented presets" role="group" aria-label="Looks">
+              <button type="button" class="active" data-preset="natural">Natural</button>
+              <button type="button" data-preset="vivid">Vivid</button>
+              <button type="button" data-preset="deep">Deep water</button>
+              <button type="button" data-preset="gentle">Gentle</button>
+              <button type="button" data-preset="dramatic">Dramatic</button>
+            </div>
+            <section class="canvas-color-info" id="colorCard" hidden>
+              <button class="color-card-toggle" id="colorCardToggle" type="button" aria-expanded="false" aria-controls="colorCardContent">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5m0-8h.01"/></svg>
+                <span><strong>Color information</strong><small id="colorInfoCompact">Profile and dynamic range</small></span>
+                <svg class="disclosure-icon" viewBox="0 0 24 24"><path d="m8 10 4 4 4-4"/></svg>
+              </button>
+              <div class="color-card-content" id="colorCardContent" hidden>
+                <div class="color-card-heading">
+                  <span><strong id="colorProfile">Color profile</strong><small id="colorTransfer">Transfer</small></span>
+                  <span class="color-badges" id="colorBadges"></span>
+                </div>
+                <p id="colorSummary"></p>
+              </div>
+            </section>
           </div>
           <div class="toolbar-right">
             <button class="tool-button active" id="swipeToggle" type="button" aria-pressed="true">
@@ -64,7 +80,10 @@
               <button type="button" data-zoom="1" title="One image pixel per screen pixel">1:1</button>
               <button type="button" data-zoom="fill" title="Fill the canvas">Fill</button>
               <button type="button" data-zoom="2" title="Two screen pixels per image pixel">2:1</button>
-              <button id="zoomStepButton" type="button" title="Left-click +10%; right-click −10%">100%</button>
+              <button id="zoomStepButton" type="button" aria-pressed="false" title="Select magnifier: click the image +10%, right-click −10%">
+                <svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5M10.5 7.5v6m-3-3h6"/></svg>
+                <span id="zoomPercent">100%</span>
+              </button>
             </div>
           </div>
         </div>
@@ -150,14 +169,6 @@
           </div>
           <div><span id="analysisLabel">Awaiting a photo</span><small id="analysisText">Auto Restore adapts to each water profile.</small></div>
           <span class="confidence" id="confidenceBadge">AUTO</span>
-        </div>
-
-        <div class="color-card" id="colorCard" hidden>
-          <div class="color-card-heading">
-            <span><strong id="colorProfile">Color profile</strong><small id="colorTransfer">Transfer</small></span>
-            <span class="color-badges" id="colorBadges"></span>
-          </div>
-          <p id="colorSummary"></p>
         </div>
 
         <div class="settings-shelf" id="settingsShelf" hidden>
@@ -329,6 +340,6 @@
   </dialog>
 
   <div class="toast-region" id="toastRegion" aria-live="polite"></div>
-  <script src="/static/app.js?v=0.4.0" defer></script>
+  <script src="/static/app.js?v=0.4.1" defer></script>
 </body>
 </html>
