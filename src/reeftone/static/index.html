@@ -5,9 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#08110f">
   <meta name="description" content="ReefTone — adaptive underwater color restoration.">
+  <meta name="reeftone-version" content="0.3.0">
   <title>ReefTone Studio</title>
   <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="/static/styles.css">
+  <link rel="stylesheet" href="/static/styles.css?v=0.3.0">
 </head>
 <body>
   <div class="app" id="app">
@@ -113,6 +114,7 @@
             </div>
             <span class="image-label before-label">Before</span>
             <span class="image-label after-label">After</span>
+            <span class="sample-marker" id="sampleMarker" hidden aria-hidden="true"></span>
             <div class="processing-overlay" id="processingOverlay" aria-live="polite">
               <span class="spinner"></span><span>Refining preview</span>
             </div>
@@ -144,52 +146,6 @@
 
         <div class="controls-scroll">
           <section class="control-section">
-            <div class="section-heading">
-              <div><h3>Auto Restore</h3><p>Scene-aware color recovery</p></div>
-              <label class="switch"><input type="checkbox" id="autoToggle" checked><span></span></label>
-            </div>
-            <div class="control-list">
-              <label class="slider-control">
-                <span>Strength</span><output data-output="auto_restore">82</output>
-                <input data-setting="auto_restore" type="range" min="0" max="1" step=".01" value=".82">
-              </label>
-              <label class="slider-control master-control">
-                <span>Overall mix</span><output data-output="master">100</output>
-                <input data-setting="master" type="range" min="0" max="1" step=".01" value="1">
-              </label>
-            </div>
-          </section>
-
-          <section class="control-section">
-            <button class="section-toggle" type="button" aria-expanded="true">
-              <span><h3>Water balance</h3><p>Recover absorbed wavelengths</p></span>
-              <svg viewBox="0 0 24 24"><path d="m8 10 4 4 4-4"/></svg>
-            </button>
-            <div class="control-list section-content">
-              <label class="slider-control">
-                <span>Red recovery</span><output data-output="red_recovery">78</output>
-                <input data-setting="red_recovery" type="range" min="0" max="1.5" step=".01" value=".78">
-              </label>
-              <label class="slider-control bipolar">
-                <span>Blue balance</span><output data-output="blue_balance">+35</output>
-                <input data-setting="blue_balance" type="range" min="-1" max="1" step=".01" value=".35">
-              </label>
-              <label class="slider-control">
-                <span>Water clarity</span><output data-output="dehaze">24</output>
-                <input data-setting="dehaze" type="range" min="0" max="1" step=".01" value=".24">
-              </label>
-              <label class="slider-control bipolar">
-                <span>Temperature</span><output data-output="temperature">0</output>
-                <input data-setting="temperature" type="range" min="-1" max="1" step=".01" value="0">
-              </label>
-              <label class="slider-control bipolar">
-                <span>Tint</span><output data-output="tint">0</output>
-                <input data-setting="tint" type="range" min="-1" max="1" step=".01" value="0">
-              </label>
-            </div>
-          </section>
-
-          <section class="control-section">
             <button class="section-toggle" type="button" aria-expanded="true">
               <span><h3>Light</h3><p>Tone and dynamic range</p></span>
               <svg viewBox="0 0 24 24"><path d="m8 10 4 4 4-4"/></svg>
@@ -200,45 +156,78 @@
                 <input data-setting="exposure" type="range" min="-2" max="2" step=".01" value="0">
               </label>
               <label class="slider-control bipolar">
-                <span>Contrast</span><output data-output="contrast">+8</output>
-                <input data-setting="contrast" type="range" min="-.5" max=".8" step=".01" value=".08">
+                <span>Contrast</span><output data-output="contrast">+22</output>
+                <input data-setting="contrast" type="range" min="-.5" max=".8" step=".01" value=".22">
               </label>
               <label class="slider-control bipolar">
-                <span>Highlights</span><output data-output="highlights">−8</output>
-                <input data-setting="highlights" type="range" min="-1" max="1" step=".01" value="-.08">
+                <span>Black point</span><output data-output="black_point">+8</output>
+                <input data-setting="black_point" type="range" min="-.5" max=".5" step=".01" value=".08">
               </label>
               <label class="slider-control bipolar">
-                <span>Shadows</span><output data-output="shadows">+12</output>
-                <input data-setting="shadows" type="range" min="-1" max="1" step=".01" value=".12">
+                <span>White point</span><output data-output="white_point">+4</output>
+                <input data-setting="white_point" type="range" min="-.5" max=".5" step=".01" value=".04">
+              </label>
+              <label class="slider-control bipolar">
+                <span>Highlights</span><output data-output="highlights">−14</output>
+                <input data-setting="highlights" type="range" min="-1" max="1" step=".01" value="-.14">
+              </label>
+              <label class="slider-control bipolar">
+                <span>Shadows</span><output data-output="shadows">+10</output>
+                <input data-setting="shadows" type="range" min="-1" max="1" step=".01" value=".10">
               </label>
             </div>
           </section>
 
           <section class="control-section">
-            <button class="section-toggle" type="button" aria-expanded="true">
-              <span><h3>Depth &amp; focus</h3><p>Guide attention through the scene</p></span>
-              <svg viewBox="0 0 24 24"><path d="m8 10 4 4 4-4"/></svg>
-            </button>
-            <div class="control-list section-content">
+            <div class="section-heading">
+              <div><h3>Auto Restore</h3><p>Scene-aware color recovery</p></div>
+              <label class="switch"><input type="checkbox" id="autoToggle" checked><span></span></label>
+            </div>
+            <div class="control-list">
               <label class="slider-control">
-                <span>Blue depth</span><output data-output="water_depth">0</output>
-                <input data-setting="water_depth" type="range" min="0" max="1" step=".01" value="0">
+                <span>Strength</span><output data-output="auto_restore">90</output>
+                <input data-setting="auto_restore" type="range" min="0" max="1" step=".01" value=".90">
+              </label>
+              <label class="slider-control master-control">
+                <span>Overall mix</span><output data-output="master">100</output>
+                <input data-setting="master" type="range" min="0" max="1" step=".01" value="1">
+              </label>
+            </div>
+          </section>
+
+          <section class="control-section">
+            <div class="section-heading balance-heading">
+              <div><h3>White balance</h3><p>Recover absorbed wavelengths</p></div>
+              <button class="eyedropper-button" id="eyedropperButton" type="button" aria-pressed="false" title="Sample a neutral point from the photo">
+                <svg viewBox="0 0 24 24"><path d="m19 3 2 2-8.5 8.5-3-3L18 2a1.4 1.4 0 0 1 2 0Z"/><path d="m8.5 11.5-5 5v4h4l5-5"/><path d="M4 20h4"/></svg>
+                Sample neutral
+              </button>
+            </div>
+            <div class="sample-status" id="sampleStatus" hidden>
+              <span class="sample-swatch" id="sampleSwatch"></span>
+              <span>Custom neutral point active</span>
+              <button id="clearSampleButton" type="button">Clear</button>
+            </div>
+            <div class="control-list">
+              <label class="slider-control">
+                <span>Red recovery</span><output data-output="red_recovery">95</output>
+                <input data-setting="red_recovery" type="range" min="0" max="1.5" step=".01" value=".95">
+              </label>
+              <label class="slider-control bipolar">
+                <span>Blue balance</span><output data-output="blue_balance">+24</output>
+                <input data-setting="blue_balance" type="range" min="-1" max="1" step=".01" value=".24">
               </label>
               <label class="slider-control">
-                <span>Subject focus</span><output data-output="subject_focus">0</output>
-                <input data-setting="subject_focus" type="range" min="0" max="1" step=".01" value="0">
+                <span>Fusion clarity</span><output data-output="dehaze">38</output>
+                <input data-setting="dehaze" type="range" min="0" max="1" step=".01" value=".38">
               </label>
-              <label class="slider-control">
-                <span>Background depth</span><output data-output="background_depth">0</output>
-                <input data-setting="background_depth" type="range" min="0" max="1" step=".01" value="0">
+              <label class="slider-control bipolar">
+                <span>Temperature</span><output data-output="temperature">+4</output>
+                <input data-setting="temperature" type="range" min="-1" max="1" step=".01" value=".04">
               </label>
-              <label class="slider-control">
-                <span>Top gradient</span><output data-output="top_gradient">0</output>
-                <input data-setting="top_gradient" type="range" min="0" max="1" step=".01" value="0">
-              </label>
-              <label class="slider-control">
-                <span>Vignette</span><output data-output="vignette">0</output>
-                <input data-setting="vignette" type="range" min="0" max="1" step=".01" value="0">
+              <label class="slider-control bipolar">
+                <span>Tint</span><output data-output="tint">+1</output>
+                <input data-setting="tint" type="range" min="-1" max="1" step=".01" value=".01">
               </label>
             </div>
           </section>
@@ -250,20 +239,20 @@
             </button>
             <div class="control-list section-content">
               <label class="slider-control bipolar">
-                <span>Saturation</span><output data-output="saturation">+4</output>
-                <input data-setting="saturation" type="range" min="-1" max="1" step=".01" value=".04">
+                <span>Saturation</span><output data-output="saturation">+5</output>
+                <input data-setting="saturation" type="range" min="-1" max="1" step=".01" value=".05">
               </label>
               <label class="slider-control bipolar">
-                <span>Vibrance</span><output data-output="vibrance">+18</output>
-                <input data-setting="vibrance" type="range" min="-1" max="1" step=".01" value=".18">
+                <span>Vibrance</span><output data-output="vibrance">+22</output>
+                <input data-setting="vibrance" type="range" min="-1" max="1" step=".01" value=".22">
               </label>
               <label class="slider-control bipolar">
-                <span>Clarity</span><output data-output="clarity">+12</output>
-                <input data-setting="clarity" type="range" min="-1" max="1" step=".01" value=".12">
+                <span>Clarity</span><output data-output="clarity">+16</output>
+                <input data-setting="clarity" type="range" min="-1" max="1" step=".01" value=".16">
               </label>
               <label class="slider-control">
-                <span>Denoise</span><output data-output="denoise">4</output>
-                <input data-setting="denoise" type="range" min="0" max="1" step=".01" value=".04">
+                <span>Denoise</span><output data-output="denoise">3</output>
+                <input data-setting="denoise" type="range" min="0" max="1" step=".01" value=".03">
               </label>
             </div>
           </section>
@@ -317,6 +306,6 @@
   </dialog>
 
   <div class="toast-region" id="toastRegion" aria-live="polite"></div>
-  <script src="/static/app.js" defer></script>
+  <script src="/static/app.js?v=0.3.0" defer></script>
 </body>
 </html>

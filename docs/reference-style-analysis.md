@@ -48,10 +48,14 @@ The closest non-generative reconstruction is a layered pipeline:
 3. Selective aqua/blue mixing that keeps water luminous.
 4. A soft subject-attention mask for lift, warmth, and texture.
 5. A darker, slightly warmer background outside that mask.
-6. A feathered top gradient and optical vignette.
+6. A feathered top gradient and optical vignette in the generated reference.
+
+ReefTone 0.3 intentionally does not expose guessed depth, subject-focus, gradient,
+or vignette controls. The reference remains useful for global color and tone
+targets, while the production algorithm now uses depth-free white balance and
+multiscale fusion.
 7. Targeted texture/clarity, with conservative denoise.
 
 These behaviors are exposed as independent controls. The **Dramatic** preset is a
 starting point, and **Overall mix** can reduce its intensity without changing the
 relative balance of the layers.
-
