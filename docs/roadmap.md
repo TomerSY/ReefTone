@@ -4,6 +4,8 @@
 
 - adaptive correction core
 - HEIC/JPEG/PNG/TIFF input
+- ICC/P3, transfer-function, HDR gain-map, and auxiliary-image detection
+- profile-tagged previews and 10-bit HEIC / 16-bit TIFF export
 - responsive local editor
 - full-resolution export
 - automated tests and sample validation
@@ -13,8 +15,9 @@
 - visual reference set across depths, water colors, cameras, and artificial lights
 - perceptual and no-reference quality metrics
 - selectable subject masks for divers, reef, and open water
-- true 16-bit decode path validation for every HEIC producer
-- wide-gamut, profile-converted preview
+- native gain-map/ISO-HDR expansion into an unclamped linear working space
+- HDR-safe correction operators and new 10-bit HDR HEIF generation
+- true deep-color decode-path validation across HEIC producers
 
 ## Phase 3 — 10-bit video
 
@@ -33,4 +36,3 @@
 - signed download links
 - privacy policy, deletion controls, and resource limits
 - WebGL comparison preview and mobile touch refinements
-

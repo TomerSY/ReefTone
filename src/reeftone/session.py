@@ -25,6 +25,8 @@ class ImageSession:
     height: int
     source_bits: int
     color_profile: str
+    color_info: dict[str, object]
+    icc_profile: bytes | None
     analysis: ImageAnalysis
     is_temporary: bool
     created_at: float

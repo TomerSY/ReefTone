@@ -32,7 +32,7 @@ MAX_UPLOAD_BYTES = 250 * 1024 * 1024
 
 app = FastAPI(
     title="ReefTone",
-    version="0.3.0",
+    version="0.4.0",
     description="Adaptive underwater color restoration",
 )
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
@@ -78,11 +78,17 @@ def _create_session(path: Path, original_name: str, is_temporary: bool) -> Image
         path=path,
         original_name=original_name,
         preview=decoded.pixels,
-        preview_jpeg=encode_preview(float_preview, quality=90),
+        preview_jpeg=encode_preview(
+            float_preview,
+            quality=90,
+            icc_profile=decoded.icc_profile,
+        ),
         width=decoded.width,
         height=decoded.height,
         source_bits=decoded.source_bits,
         color_profile=decoded.color_profile,
+        color_info=decoded.color_info(),
+        icc_profile=decoded.icc_profile,
         analysis=analysis,
         is_temporary=is_temporary,
         created_at=time.time(),
@@ -153,6 +159,7 @@ def _session_payload(session: ImageSession) -> dict[str, object]:
         "source_bits": session.source_bits,
         "working_bits": 32,
         "profile": session.color_profile,
+        "color": session.color_info,
         "analysis": session.analysis.to_dict(),
     }
 
@@ -173,7 +180,7 @@ def processed_preview(session_id: str, payload: dict[str, object]) -> Response:
     settings = CorrectionSettings.from_mapping(payload)
     corrected = correct_image(session.preview, settings)
     return Response(
-        encode_preview(corrected, quality=91),
+        encode_preview(corrected, quality=91, icc_profile=session.icc_profile),
         media_type="image/jpeg",
         headers={"Cache-Control": "no-store"},
     )
@@ -188,8 +195,8 @@ def export(
     session = _session_or_404(session_id)
     output_format = str(payload.pop("format", "jpeg")).lower()
     quality = int(payload.pop("quality", 95))
-    if output_format not in {"jpeg", "png", "tiff"}:
-        raise HTTPException(400, "Export format must be JPEG, PNG, or TIFF.")
+    if output_format not in {"jpeg", "png", "tiff", "heic"}:
+        raise HTTPException(400, "Export format must be HEIC, JPEG, PNG, or TIFF.")
     settings = CorrectionSettings.from_mapping(payload)
 
     try:
@@ -198,7 +205,9 @@ def export(
     except Exception as error:
         raise HTTPException(422, f"Could not process the full-resolution image: {error}") from error
 
-    suffix = {"jpeg": ".jpg", "png": ".png", "tiff": ".tif"}[output_format]
+    suffix = {"jpeg": ".jpg", "png": ".png", "tiff": ".tif", "heic": ".heic"}[
+        output_format
+    ]
     stem = Path(session.original_name).stem
     output_dir = Path(tempfile.mkdtemp(prefix="reeftone_export_"))
     output_path = output_dir / f"{stem}_reeftone{suffix}"
@@ -209,6 +218,8 @@ def export(
         quality,
         decoded.icc_profile,
         decoded.exif,
+        decoded.xmp,
+        decoded.nclx_profile if decoded.dynamic_range == "SDR" else None,
     )
     background_tasks.add_task(shutil.rmtree, output_dir, ignore_errors=True)
     media_type = mimetypes.guess_type(output_path.name)[0] or "application/octet-stream"
