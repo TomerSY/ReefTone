@@ -1,6 +1,6 @@
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
-const APP_VERSION = "0.4.0";
+const APP_VERSION = "0.4.1";
 
 const state = {
   session: null,
@@ -14,6 +14,11 @@ const state = {
   fullBefore: false,
   zoomScale: 1,
   zoomMode: "fit",
+  zoomTool: false,
+  panX: 0,
+  panY: 0,
+  panning: false,
+  suppressCanvasClick: false,
   settingsClips: [],
   previewController: null,
   previewTimer: null,
@@ -52,6 +57,8 @@ const elements = {
   eyedropperButton: $("#eyedropperButton"),
   sampleMarker: $("#sampleMarker"),
   colorCard: $("#colorCard"),
+  colorCardContent: $("#colorCardContent"),
+  zoomPercent: $("#zoomPercent"),
 };
 
 function formatBytes(bytes) {
@@ -195,6 +202,8 @@ async function activateSession(session) {
   scrollToTop();
   alignImageLayers();
   setSwipeEnabled(true);
+  setColorInfoExpanded(false);
+  setZoomTool(false);
   setZoomMode("fit");
   updateHistoryButtons();
   schedulePreview(0);
@@ -208,6 +217,7 @@ function setLoadingDocument(text) {
 function renderColorInfo(color) {
   elements.colorCard.hidden = false;
   $("#colorProfile").textContent = color.profile || "Unprofiled RGB";
+  $("#colorInfoCompact").textContent = `${color.profile || "Unprofiled RGB"} · ${color.dynamic_range || "SDR"}`;
   const workingSuffix = color.working_profile && color.working_profile !== color.profile
     ? ` · working: ${color.working_profile}`
     : "";
@@ -226,6 +236,11 @@ function renderColorInfo(color) {
   } else {
     $("#colorSummary").textContent = `Profile-aware ${color.dynamic_range || "SDR"} workflow. Embedded ICC, EXIF, and available XMP metadata are carried into compatible exports.`;
   }
+}
+
+function setColorInfoExpanded(expanded) {
+  $("#colorCardToggle").setAttribute("aria-expanded", String(expanded));
+  elements.colorCardContent.hidden = !expanded;
 }
 
 function configureExportForSession(color) {
@@ -489,6 +504,7 @@ function syncSampleStatus() {
 }
 
 function setSampling(enabled) {
+  if (enabled) setZoomTool(false);
   state.sampling = enabled;
   elements.imageShell.classList.toggle("sampling", enabled);
   elements.eyedropperButton.classList.toggle("active", enabled);
@@ -646,15 +662,76 @@ function toggleFullBefore() {
   $("#beforeAfterButton").textContent = state.fullBefore ? "After" : "Before";
 }
 
-function setZoomScale(scale, mode = "manual") {
-  state.zoomScale = Math.max(0.1, Math.min(16, scale));
+function canvasGeometry() {
+  const stageRect = elements.editorStage.getBoundingClientRect();
+  const style = getComputedStyle(elements.editorStage);
+  const paddingLeft = parseFloat(style.paddingLeft);
+  const paddingRight = parseFloat(style.paddingRight);
+  const paddingTop = parseFloat(style.paddingTop);
+  const paddingBottom = parseFloat(style.paddingBottom);
+  const width = Math.max(1, stageRect.width - paddingLeft - paddingRight);
+  const height = Math.max(1, stageRect.height - paddingTop - paddingBottom);
+  return {
+    width,
+    height,
+    centerX: stageRect.left + paddingLeft + width / 2,
+    centerY: stageRect.top + paddingTop + height / 2,
+  };
+}
+
+function panLimits(scale = state.zoomScale) {
+  const viewport = canvasGeometry();
+  return {
+    x: Math.max(0, (elements.imageShell.offsetWidth * scale - viewport.width) / 2),
+    y: Math.max(0, (elements.imageShell.offsetHeight * scale - viewport.height) / 2),
+  };
+}
+
+function clampPan() {
+  const limits = panLimits();
+  state.panX = Math.max(-limits.x, Math.min(limits.x, state.panX));
+  state.panY = Math.max(-limits.y, Math.min(limits.y, state.panY));
+  return limits;
+}
+
+function renderViewport() {
+  const limits = clampPan();
+  elements.imageShell.style.transform = `translate3d(${state.panX}px, ${state.panY}px, 0) scale(${state.zoomScale})`;
+  elements.imageShell.classList.toggle("pannable", limits.x > 0 || limits.y > 0);
+  elements.imageShell.classList.toggle("zoom-tool", state.zoomTool && !state.sampling);
+  elements.imageShell.classList.toggle("panning", state.panning);
+}
+
+function setZoomTool(enabled) {
+  if (enabled && state.sampling) setSampling(false);
+  state.zoomTool = enabled;
+  $("#zoomStepButton").classList.toggle("active", enabled);
+  $("#zoomStepButton").setAttribute("aria-pressed", String(enabled));
+  renderViewport();
+}
+
+function setZoomScale(scale, mode = "manual", focalPoint = null, resetPan = false) {
+  const previousScale = state.zoomScale;
+  const nextScale = Math.max(0.1, Math.min(16, scale));
+  if (resetPan) {
+    state.panX = 0;
+    state.panY = 0;
+  } else if (focalPoint && previousScale > 0) {
+    const viewport = canvasGeometry();
+    const centerX = viewport.centerX + state.panX;
+    const centerY = viewport.centerY + state.panY;
+    const ratio = nextScale / previousScale;
+    state.panX += (focalPoint.clientX - centerX) * (1 - ratio);
+    state.panY += (focalPoint.clientY - centerY) * (1 - ratio);
+  }
+  state.zoomScale = nextScale;
   state.zoomMode = mode;
-  elements.imageShell.style.transform = `scale(${state.zoomScale})`;
-  $("#zoomStepButton").textContent = `${Math.round(state.zoomScale * 100)}%`;
+  elements.zoomPercent.textContent = `${Math.round(state.zoomScale * 100)}%`;
   $$("[data-zoom], #fitButton").forEach(button => {
     const buttonMode = button.id === "fitButton" ? "fit" : button.dataset.zoom;
     button.classList.toggle("active", buttonMode === mode);
   });
+  renderViewport();
   alignImageLayers();
 }
 
@@ -662,7 +739,7 @@ function setZoomMode(mode) {
   const baseWidth = elements.original.offsetWidth || 1;
   const baseHeight = elements.original.offsetHeight || 1;
   if (mode === "fit") {
-    setZoomScale(1, mode);
+    setZoomScale(1, mode, null, true);
     return;
   }
   if (mode === "fill") {
@@ -671,15 +748,30 @@ function setZoomMode(mode) {
       - parseFloat(stageStyle.paddingLeft) - parseFloat(stageStyle.paddingRight);
     const availableHeight = elements.editorStage.clientHeight
       - parseFloat(stageStyle.paddingTop) - parseFloat(stageStyle.paddingBottom);
-    setZoomScale(Math.max(availableWidth / baseWidth, availableHeight / baseHeight), mode);
+    setZoomScale(
+      Math.max(availableWidth / baseWidth, availableHeight / baseHeight),
+      mode,
+      null,
+      true,
+    );
     return;
   }
   const pixelRatio = Number(mode);
-  setZoomScale((elements.original.naturalWidth / baseWidth) * pixelRatio, mode);
+  setZoomScale((elements.original.naturalWidth / baseWidth) * pixelRatio, mode, null, true);
 }
 
-function stepZoom(direction) {
-  setZoomScale(state.zoomScale + direction * 0.1);
+function focalZoom(direction, event) {
+  setZoomScale(state.zoomScale + direction * 0.1, "manual", event);
+}
+
+function handleImageClick(event) {
+  if (state.suppressCanvasClick || event.target.closest("#compareLine")) return;
+  if (state.zoomTool) {
+    event.preventDefault();
+    focalZoom(1, event);
+    return;
+  }
+  sampleNeutralPoint(event);
 }
 
 function resetSettings() {
@@ -725,6 +817,7 @@ async function exportImage(event) {
 }
 
 function showEmptyState() {
+  setZoomTool(false);
   elements.emptyState.hidden = false;
   elements.editorStage.hidden = true;
   elements.canvasToolbar.hidden = true;
@@ -745,6 +838,9 @@ function bindEvents() {
   });
   elements.resetButton.addEventListener("click", resetSettings);
   elements.copySettingsButton.addEventListener("click", copyCurrentSettings);
+  $("#colorCardToggle").addEventListener("click", event => {
+    setColorInfoExpanded(event.currentTarget.getAttribute("aria-expanded") !== "true");
+  });
   elements.undoButton.addEventListener("click", undo);
   elements.redoButton.addEventListener("click", redo);
   $("#swipeToggle").addEventListener("click", () => setSwipeEnabled(!state.swipeEnabled));
@@ -753,11 +849,7 @@ function bindEvents() {
   $$("[data-zoom]").forEach(button => {
     button.addEventListener("click", () => setZoomMode(button.dataset.zoom));
   });
-  $("#zoomStepButton").addEventListener("click", () => stepZoom(1));
-  $("#zoomStepButton").addEventListener("contextmenu", event => {
-    event.preventDefault();
-    stepZoom(-1);
-  });
+  $("#zoomStepButton").addEventListener("click", () => setZoomTool(!state.zoomTool));
 
   $$(".presets button").forEach(button => button.addEventListener("click", () => applyPreset(button.dataset.preset)));
   elements.eyedropperButton.addEventListener("click", () => {
@@ -766,7 +858,58 @@ function bindEvents() {
     if (state.sampling) toast("Click a gray, white, or neutral area in the photo");
   });
   $("#clearSampleButton").addEventListener("click", clearSample);
-  elements.imageShell.addEventListener("click", sampleNeutralPoint);
+  elements.imageShell.addEventListener("click", handleImageClick);
+  elements.imageShell.addEventListener("contextmenu", event => {
+    if (!state.zoomTool || event.target.closest("#compareLine")) return;
+    event.preventDefault();
+    focalZoom(-1, event);
+  });
+  elements.imageShell.addEventListener("dragstart", event => event.preventDefault());
+
+  let panGesture = null;
+  elements.imageShell.addEventListener("pointerdown", event => {
+    if (
+      event.button !== 0
+      || state.sampling
+      || event.target.closest("#compareLine")
+    ) return;
+    const limits = panLimits();
+    if (limits.x <= 0 && limits.y <= 0) return;
+    panGesture = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      panX: state.panX,
+      panY: state.panY,
+      moved: false,
+    };
+    elements.imageShell.setPointerCapture(event.pointerId);
+  });
+  elements.imageShell.addEventListener("pointermove", event => {
+    if (!panGesture || panGesture.pointerId !== event.pointerId) return;
+    const deltaX = event.clientX - panGesture.startX;
+    const deltaY = event.clientY - panGesture.startY;
+    if (!panGesture.moved && Math.hypot(deltaX, deltaY) < 4) return;
+    panGesture.moved = true;
+    state.panning = true;
+    state.panX = panGesture.panX + deltaX;
+    state.panY = panGesture.panY + deltaY;
+    renderViewport();
+    event.preventDefault();
+  });
+  const finishPan = event => {
+    if (!panGesture || panGesture.pointerId !== event.pointerId) return;
+    const moved = panGesture.moved;
+    panGesture = null;
+    state.panning = false;
+    renderViewport();
+    if (moved) {
+      state.suppressCanvasClick = true;
+      setTimeout(() => { state.suppressCanvasClick = false; }, 0);
+    }
+  };
+  elements.imageShell.addEventListener("pointerup", finishPan);
+  elements.imageShell.addEventListener("pointercancel", finishPan);
   $$(".section-toggle").forEach(button => button.addEventListener("click", () => {
     button.setAttribute("aria-expanded", button.getAttribute("aria-expanded") !== "true");
   }));
@@ -819,6 +962,7 @@ function bindEvents() {
   window.addEventListener("resize", () => {
     alignImageLayers();
     if (state.session && state.zoomMode !== "manual") setZoomMode(state.zoomMode);
+    else if (state.session) renderViewport();
   });
   window.addEventListener("keydown", event => {
     const command = event.metaKey || event.ctrlKey;
