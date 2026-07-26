@@ -17,5 +17,6 @@ def test_mapping_ignores_unknown_values_and_clamps_ranges() -> None:
 
 
 def test_presets_are_independent_settings() -> None:
-    assert set(PRESETS) == {"natural", "vivid", "deep", "gentle"}
+    assert set(PRESETS) == {"natural", "vivid", "deep", "gentle", "dramatic"}
     assert PRESETS["deep"].dehaze > PRESETS["gentle"].dehaze
+    assert PRESETS["dramatic"].subject_focus > 0

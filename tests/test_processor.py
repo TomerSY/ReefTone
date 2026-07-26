@@ -1,6 +1,6 @@
 import numpy as np
 
-from reeftone.config import CorrectionSettings
+from reeftone.config import PRESETS, CorrectionSettings
 from reeftone.processor import analyze_image, correct_image
 
 
@@ -44,3 +44,23 @@ def test_accepts_uint8_input() -> None:
     result = correct_image(source)
     assert result.dtype == np.float32
     assert result.shape == source.shape
+
+
+def test_dramatic_preset_builds_subject_background_separation() -> None:
+    source = teal_test_image(160, 220)
+    # Add a warm, textured central subject to exercise the soft attention mask.
+    source[50:120, 70:155, 0] += 0.26
+    source[50:120:2, 70:155:2, 1] += 0.12
+    source = np.clip(source, 0, 1)
+    result = correct_image(source, PRESETS["dramatic"])
+    center = result[60:110, 85:140].mean()
+    edge = np.concatenate(
+        [
+            result[:35].reshape(-1, 3),
+            result[-35:].reshape(-1, 3),
+            result[:, :35].reshape(-1, 3),
+            result[:, -35:].reshape(-1, 3),
+        ]
+    ).mean()
+    assert center > edge
+    assert np.isfinite(result).all()

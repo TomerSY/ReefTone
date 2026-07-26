@@ -32,7 +32,7 @@ MAX_UPLOAD_BYTES = 250 * 1024 * 1024
 
 app = FastAPI(
     title="ReefTone",
-    version="0.1.0",
+    version="0.2.0",
     description="Adaptive underwater color restoration",
 )
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")

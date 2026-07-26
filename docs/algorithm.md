@@ -24,7 +24,7 @@ Confidence-gated white balance
       ↓
 Edge-aware local contrast
       ↓
-Tone → color → detail
+Tone → color → composition → detail
       ↓
 Non-destructive master mix
 ```
@@ -78,7 +78,23 @@ smooth water gradients receive less amplification and are less likely to band.
 - clarity is a mid-frequency unsharp mask;
 - denoise is an edge-preserving bilateral blend.
 
-### 6. Master mix
+### 6. Composition and selective color
+
+The optional composition stage estimates two soft masks at a bounded 512-pixel
+analysis resolution:
+
+- **Visual attention** combines spectral-residual saliency, color distinctiveness,
+  and a broad center prior. It is a photographic focus estimate, not semantic
+  segmentation.
+- **Open water** combines blue dominance, low local detail, and a loose upper-frame
+  prior. It prevents a dramatic background burn from crushing smooth water.
+
+These masks drive independently adjustable subject lift/warmth, background depth,
+aqua-to-blue color mixing, a graduated top burn, texture, and vignette. Full-size
+masks are feathered, so there are no hard selection edges. This stage transforms
+existing pixels only; it cannot invent or move coral texture.
+
+### 7. Master mix
 
 The final corrected result is blended with the untouched float source. This makes
 the full pipeline non-destructive and gives the user a perceptually simple overall
@@ -94,12 +110,14 @@ All arithmetic is float32. Export quantizes only at the final encoder:
 
 ## Known limitations
 
-- The automatic model is statistical, not depth-map or learned restoration.
+- The automatic analysis is statistical, not depth-map or learned restoration.
 - Severely clipped red-channel information cannot be recreated as measured truth.
 - Artificial colored lights may require manual temperature and tint changes.
 - Display-referred HEIC correction is not a replacement for RAW development.
 - Spatially varying water columns are handled conservatively; a future local-depth
   model can improve foreground/background separation.
+- Visual attention can favor a central reef feature when the true subject is near
+  an edge. Subject focus is optional and fully controllable.
 
 ## Video extension
 

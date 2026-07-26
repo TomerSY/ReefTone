@@ -49,6 +49,7 @@
             <button type="button" data-preset="vivid">Vivid</button>
             <button type="button" data-preset="deep">Deep water</button>
             <button type="button" data-preset="gentle">Gentle</button>
+            <button type="button" data-preset="dramatic">Dramatic</button>
           </div>
           <div class="toolbar-right">
             <button class="tool-button active" id="compareButton" type="button" aria-pressed="true">
@@ -209,6 +210,35 @@
               <label class="slider-control bipolar">
                 <span>Shadows</span><output data-output="shadows">+12</output>
                 <input data-setting="shadows" type="range" min="-1" max="1" step=".01" value=".12">
+              </label>
+            </div>
+          </section>
+
+          <section class="control-section">
+            <button class="section-toggle" type="button" aria-expanded="true">
+              <span><h3>Depth &amp; focus</h3><p>Guide attention through the scene</p></span>
+              <svg viewBox="0 0 24 24"><path d="m8 10 4 4 4-4"/></svg>
+            </button>
+            <div class="control-list section-content">
+              <label class="slider-control">
+                <span>Blue depth</span><output data-output="water_depth">0</output>
+                <input data-setting="water_depth" type="range" min="0" max="1" step=".01" value="0">
+              </label>
+              <label class="slider-control">
+                <span>Subject focus</span><output data-output="subject_focus">0</output>
+                <input data-setting="subject_focus" type="range" min="0" max="1" step=".01" value="0">
+              </label>
+              <label class="slider-control">
+                <span>Background depth</span><output data-output="background_depth">0</output>
+                <input data-setting="background_depth" type="range" min="0" max="1" step=".01" value="0">
+              </label>
+              <label class="slider-control">
+                <span>Top gradient</span><output data-output="top_gradient">0</output>
+                <input data-setting="top_gradient" type="range" min="0" max="1" step=".01" value="0">
+              </label>
+              <label class="slider-control">
+                <span>Vignette</span><output data-output="vignette">0</output>
+                <input data-setting="vignette" type="range" min="0" max="1" step=".01" value="0">
               </label>
             </div>
           </section>

@@ -25,6 +25,11 @@ class CorrectionSettings:
     vibrance: float = 0.18
     clarity: float = 0.12
     denoise: float = 0.04
+    water_depth: float = 0.0
+    subject_focus: float = 0.0
+    background_depth: float = 0.0
+    top_gradient: float = 0.0
+    vignette: float = 0.0
 
     RANGES = {
         "master": (0.0, 1.0),
@@ -42,6 +47,11 @@ class CorrectionSettings:
         "vibrance": (-1.0, 1.0),
         "clarity": (-1.0, 1.0),
         "denoise": (0.0, 1.0),
+        "water_depth": (0.0, 1.0),
+        "subject_focus": (0.0, 1.0),
+        "background_depth": (0.0, 1.0),
+        "top_gradient": (0.0, 1.0),
+        "vignette": (0.0, 1.0),
     }
 
     @classmethod
@@ -98,5 +108,26 @@ PRESETS: dict[str, CorrectionSettings] = {
         saturation=0.02,
         vibrance=0.10,
         clarity=0.05,
+    ),
+    "dramatic": CorrectionSettings(
+        auto_restore=0.68,
+        red_recovery=0.72,
+        blue_balance=0.22,
+        dehaze=0.42,
+        temperature=0.12,
+        tint=0.08,
+        exposure=-0.28,
+        contrast=0.28,
+        highlights=-0.35,
+        shadows=-0.08,
+        saturation=-0.08,
+        vibrance=0.10,
+        clarity=0.24,
+        denoise=0.03,
+        water_depth=0.62,
+        subject_focus=0.78,
+        background_depth=0.62,
+        top_gradient=0.55,
+        vignette=0.34,
     ),
 }

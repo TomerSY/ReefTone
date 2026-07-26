@@ -211,6 +211,161 @@ def _apply_detail(image: FloatImage, clarity: float, denoise: float) -> FloatIma
     return np.clip(result, 0.0, 1.0)
 
 
+def _spectral_attention_mask(image: FloatImage) -> NDArray[np.float32]:
+    """Return a soft, center-aware visual-attention mask without a model download.
+
+    Spectral residual saliency supplies image-specific structure, while the broad
+    center prior fills subject interiors. This is intentionally a soft photographic
+    mask rather than a claimed semantic segmentation.
+    """
+
+    height, width = image.shape[:2]
+    scale = min(1.0, 512 / max(height, width))
+    if scale < 1:
+        sample = cv2.resize(
+            image,
+            (max(1, round(width * scale)), max(1, round(height * scale))),
+            interpolation=cv2.INTER_AREA,
+        )
+    else:
+        sample = image
+
+    gray = _rgb_luma(sample)
+    spectrum = np.fft.fft2(gray)
+    log_amplitude = np.log(np.abs(spectrum) + 1e-6)
+    residual = log_amplitude - cv2.blur(log_amplitude.astype(np.float32), (5, 5))
+    reconstructed = np.fft.ifft2(np.exp(residual + 1j * np.angle(spectrum)))
+    saliency = np.square(np.abs(reconstructed)).astype(np.float32)
+    saliency = cv2.GaussianBlur(saliency, (0, 0), 4.5)
+    low, high = np.percentile(saliency, [20, 99])
+    saliency = np.clip((saliency - low) / max(high - low, 1e-6), 0, 1)
+    saliency = cv2.dilate(saliency, np.ones((17, 17), np.uint8))
+    saliency = cv2.GaussianBlur(saliency, (0, 0), 11)
+
+    sample_height, sample_width = sample.shape[:2]
+    yy, xx = np.mgrid[:sample_height, :sample_width].astype(np.float32)
+    center = np.exp(
+        -0.5
+        * (
+            np.square((xx / sample_width - 0.5) / 0.34)
+            + np.square((yy / sample_height - 0.53) / 0.31)
+        )
+    ).astype(np.float32)
+
+    lab = cv2.cvtColor(sample, cv2.COLOR_RGB2LAB)
+    median = np.median(lab.reshape(-1, 3), axis=0)
+    color_distance = np.linalg.norm((lab - median) / np.array([100, 128, 128]), axis=2)
+    color_distance = np.clip(color_distance / (np.percentile(color_distance, 95) + 1e-6), 0, 1)
+
+    attention = (0.50 * saliency + 0.28 * center + 0.22 * color_distance) * (0.58 + 0.42 * center)
+    attention = cv2.GaussianBlur(attention.astype(np.float32), (0, 0), 7)
+    low, high = np.percentile(attention, [35, 94])
+    attention = np.clip((attention - low) / max(high - low, 1e-6), 0, 1)
+    attention = np.power(attention, 0.72, dtype=np.float32)
+    if attention.shape != (height, width):
+        attention = cv2.resize(attention, (width, height), interpolation=cv2.INTER_LINEAR)
+    return np.clip(attention, 0, 1).astype(np.float32)
+
+
+def _open_water_likelihood(image: FloatImage) -> NDArray[np.float32]:
+    """Estimate smooth, blue-dominant open water at preview resolution."""
+
+    height, width = image.shape[:2]
+    scale = min(1.0, 512 / max(height, width))
+    if scale < 1:
+        sample = cv2.resize(
+            image,
+            (max(1, round(width * scale)), max(1, round(height * scale))),
+            interpolation=cv2.INTER_AREA,
+        )
+    else:
+        sample = image
+
+    red, green, blue = (sample[..., channel] for channel in range(3))
+    chroma = np.maximum(sample.max(axis=2) - sample.min(axis=2), 0)
+    blue_score = np.clip((blue - red + 0.04) * 2.6, 0, 1) * np.clip(chroma * 2.2, 0, 1)
+    local_detail = np.abs(cv2.Laplacian(_rgb_luma(sample), cv2.CV_32F, ksize=3))
+    local_detail = cv2.GaussianBlur(local_detail, (0, 0), 2.4)
+    detail_scale = np.percentile(local_detail, 88) + 1e-6
+    smooth_water = np.square(1.0 - np.clip(local_detail / detail_scale, 0, 1))
+    normalized_y = np.linspace(0, 1, sample.shape[0], dtype=np.float32)[:, None]
+    upper_prior = np.clip(1.0 - normalized_y / 0.82, 0.08, 1.0)
+    likelihood = blue_score * smooth_water * upper_prior
+    if likelihood.shape != (height, width):
+        likelihood = cv2.resize(likelihood, (width, height), interpolation=cv2.INTER_LINEAR)
+    return np.clip(likelihood, 0, 1).astype(np.float32)
+
+
+def _apply_composition(
+    image: FloatImage,
+    source: FloatImage,
+    settings: CorrectionSettings,
+) -> FloatImage:
+    if (
+        max(
+            settings.water_depth,
+            settings.subject_focus,
+            settings.background_depth,
+            settings.top_gradient,
+            settings.vignette,
+        )
+        <= 0.001
+    ):
+        return image
+
+    height, width = image.shape[:2]
+    attention = _spectral_attention_mask(source)
+    open_water = _open_water_likelihood(source)
+    result = image.copy()
+
+    # Lift and warm the visual subject while darkening the surroundings. The soft
+    # mask avoids cut-out edges. Blue water is protected from the background burn:
+    # the reference style darkens reef surroundings much more than open water.
+    focus = settings.subject_focus
+    background = settings.background_depth
+    background_mask = (1.0 - attention) * (1.0 - open_water * 0.82)
+    exposure_map = attention * (0.36 * focus) - background_mask * (0.58 * background)
+    result *= np.exp2(exposure_map)[..., None].astype(np.float32)
+    result[..., 0] *= 1.0 + attention * focus * 0.60
+    result[..., 1] *= 1.0 + attention * focus * 0.015
+    result[..., 2] *= 1.0 - attention * focus * 0.05
+    result[..., 0] *= 1.0 + (1.0 - attention) * background * 0.14
+
+    # Lightroom-style aqua/blue mixing is more faithful than darkening all three
+    # channels. Build a water variant from the source, then blend it only into
+    # blue-dominant, low-attention areas. This retains natural water luminosity
+    # while moving pale cyan toward a deeper blue.
+    water_mask = open_water * (1.0 - attention * 0.62) * settings.water_depth
+    water_blend = np.clip(water_mask * 4.0, 0, 1)
+    inverse_water = 1.0 - water_blend
+    red_variant = np.clip(
+        source[..., 0] * 1.10 + np.maximum(source[..., 2] - source[..., 0], 0) * 0.018,
+        0,
+        1,
+    )
+    result[..., 0] = result[..., 0] * inverse_water + red_variant * water_blend
+    result[..., 1] = result[..., 1] * inverse_water + source[..., 1] * 0.91 * water_blend
+    result[..., 2] = result[..., 2] * inverse_water + source[..., 2] * 0.98 * water_blend
+
+    normalized_y = np.linspace(0, 1, height, dtype=np.float32)[:, None]
+    top_mask = np.square(np.clip(1.0 - normalized_y / 0.58, 0, 1)) * settings.top_gradient
+    result *= np.exp2(-0.38 * top_mask)[..., None].astype(np.float32)
+    result[..., 2] *= 1.0 + top_mask * 0.025
+
+    # Feathered optical vignette with a higher midpoint than a simple corner burn.
+    nx = (np.linspace(0, 1, width, dtype=np.float32)[None, :] - 0.5) / 0.72
+    ny = (normalized_y - 0.5) / 0.72
+    radius = np.sqrt(np.square(nx) + np.square(ny))
+    edge = np.square(np.clip((radius - 0.34) / 0.66, 0, 1)) * settings.vignette
+    result *= np.exp2(-0.52 * edge)[..., None].astype(np.float32)
+
+    if focus > 0.01:
+        blurred = cv2.GaussianBlur(result, (0, 0), 1.15)
+        texture = (result - blurred) * (attention * focus * 0.34)[..., None]
+        result += texture
+    return np.clip(result, 0, 1)
+
+
 def correct_image(
     image: NDArray[np.generic],
     settings: CorrectionSettings | None = None,
@@ -226,6 +381,7 @@ def correct_image(
     corrected = _restore_local_contrast(corrected, adaptive_dehaze)
     corrected = _apply_tone(corrected, settings)
     corrected = _apply_color(corrected, settings)
+    corrected = _apply_composition(corrected, original, settings)
     corrected = _apply_detail(corrected, settings.clarity, settings.denoise)
 
     master = np.float32(settings.master)

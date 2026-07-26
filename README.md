@@ -15,6 +15,8 @@ like a focused desktop editor today and can grow into a hosted product later.
 - scene analysis for red attenuation, cyan cast, haze, and low light
 - adaptive red recovery and confidence-gated white balance
 - edge-aware local contrast, exposure, tone, vibrance, clarity, and denoise
+- visual-attention focus, open-water color mixing, background depth, graduated
+  top light, and optical vignette controls
 - a real-time before/after editor with presets, undo/redo, drag-and-drop, and
   keyboard-accessible controls
 - full-resolution JPEG, PNG, and 16-bit TIFF export
@@ -42,12 +44,18 @@ screen. You can also drag a file anywhere over the app.
 
 ## Recommended workflow
 
-1. Open a photo and start with **Natural**.
+1. Open a photo and start with **Natural**. Use **Dramatic** for the deeper,
+   Lightroom-inspired subject-and-background treatment.
 2. Use the comparison divider to check skin, coral, and open-water gradients.
 3. Adjust **Red recovery** before adding saturation. This restores missing balance
    more naturally than globally boosting color.
 4. Use **Water clarity** sparingly on smooth open water.
 5. Export a JPEG for sharing or a 16-bit TIFF as a high-quality editing master.
+
+**Subject focus** uses a soft visual-attention estimate rather than claiming to
+identify a turtle or diver semantically. It never replaces pixels or changes scene
+geometry. Reduce it when the important subject is near an edge, or set it to zero
+for a fully global edit.
 
 Keyboard shortcuts:
 
@@ -93,7 +101,9 @@ and EXIF blocks are retained for JPEG/PNG when the source decoder exposes them.
 
 The current release is display-referred: it is optimized for Apple HEIC and standard
 JPEG photographs rather than camera RAW development. See
-[the algorithm notes](docs/algorithm.md) for details and limitations.
+[the algorithm notes](docs/algorithm.md) for details and limitations. The measurements
+behind the Dramatic look are recorded in
+[the reference-style analysis](docs/reference-style-analysis.md).
 
 ## Video roadmap
 
@@ -113,4 +123,3 @@ much easier to validate for color correctness before adding temporal behavior.
 ## License
 
 MIT — see [LICENSE](LICENSE).
-
