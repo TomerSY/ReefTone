@@ -8,6 +8,9 @@ __pycache__/
 htmlcov/
 build/
 dist/
+web/node_modules/
+web/dist/
+.pnpm-store/
 *.egg-info/
 .reeftone_cache/
 exports/
@@ -25,4 +28,3 @@ exports/
 *.mov
 *.MP4
 *.mp4
-

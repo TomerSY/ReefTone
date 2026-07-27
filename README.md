@@ -84,6 +84,7 @@ src/reeftone/
   app.py            Local FastAPI application
   session.py        Bounded, private preview sessions
   static/           Responsive editor UI
+web/                 Browser-local PWA alpha
 tests/               Unit and API tests
 docs/                Architecture and roadmap
 ```
@@ -123,6 +124,25 @@ Apple gain-map HDR is now detected and reported separately from the SDR base.
 ReefTone does not copy an unchanged gain map onto edited pixels or falsely tag an
 SDR result as HDR. The exact preservation matrix and native HDR roadmap are in
 [the color-management notes](docs/color-management.md).
+
+## Browser-local web alpha
+
+The new [`web/`](web/) workspace is the beginning of a free public edition that
+does its image work on the user's device. The first alpha opens JPEG/PNG files,
+renders a WebGPU or Canvas preview, and exports locally. It has no photo upload
+endpoint and does not change the Python editor.
+
+This alpha is a product and performance foundation, not yet a color-management
+replacement for the Python app. HEIC, embedded metadata preservation, Display P3,
+HDR output, algorithm parity, and video remain disabled until they can be
+validated end to end. See the [web alpha notes](web/README.md) for its exact scope.
+
+```bash
+cd web
+pnpm install
+pnpm test
+pnpm dev
+```
 
 ## Video roadmap
 

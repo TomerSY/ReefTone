@@ -7,12 +7,21 @@ small refinements.
 
 ## [Unreleased]
 
+### Added
+
+- Separate browser-local PWA alpha in `web/`
+- WebGPU photo preview with a Canvas 2D fallback
+- On-device JPEG/PNG opening, adjustments, comparison, and full-resolution export
+- Browser capability reporting for GPU, Display P3, HDR display, OffscreenCanvas,
+  and WebAssembly support
+- Automated web color-math tests and production build validation
+
 ### Planned
 
 - Native HDR gain-map editing and reconstruction
 - Transfer-function-aware HLG and PQ processing
 - Temporally stable HEVC video correction
-- Hosted web edition after the local workflow is validated
+- Shared color-managed WebAssembly core for Python/web algorithm parity
 
 ## [0.4.1] - 2026-07-26
 

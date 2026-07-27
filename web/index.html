@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#07110f">
+  <meta name="description" content="ReefTone Web Alpha — private underwater photo correction that runs on your device.">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="ReefTone Web Alpha">
+  <meta property="og:description" content="Private underwater photo correction that runs entirely on your device.">
+  <meta property="og:image" content="__REEFTONE_ORIGIN__/og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="A naturally color-corrected sea turtle swimming over a coral reef.">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="ReefTone Web Alpha">
+  <meta name="twitter:description" content="Private underwater photo correction that runs entirely on your device.">
+  <meta name="twitter:image" content="__REEFTONE_ORIGIN__/og.png">
+  <title>ReefTone Web Alpha</title>
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="ReefTone Web home">
+        <span class="brand-mark" aria-hidden="true">R</span>
+        <span><strong>ReefTone</strong><small>Web Alpha</small></span>
+      </a>
+      <div class="document-state">
+        <strong id="documentName">Local processing lab</strong>
+        <small id="documentMeta">Nothing leaves this device</small>
+      </div>
+      <div class="top-actions">
+        <span class="privacy-pill"><i></i>On-device</span>
+        <button class="secondary-button" id="openButton" type="button">Open photo</button>
+      </div>
+    </header>
+
+    <main class="workspace">
+      <section class="preview-panel" aria-label="Photo preview">
+        <div class="alpha-notice">
+          <strong>0.5.0 alpha</strong>
+          <span>This validates local browser processing. Your Python editor remains the quality reference.</span>
+        </div>
+
+        <div class="empty-state" id="emptyState">
+          <div class="empty-orbit" aria-hidden="true"><span></span><i></i></div>
+          <p class="eyebrow">Private by design</p>
+          <h1>Edit underwater color without uploading your photograph.</h1>
+          <p>Choose a JPEG or PNG. ReefTone decodes it in your browser, renders the preview on this device, and creates the download locally.</p>
+          <button class="primary-button large" id="chooseButton" type="button">Choose a local photo</button>
+          <small>JPEG and PNG in this first alpha · HEIC and HDR follow after validation</small>
+        </div>
+
+        <div class="editor-stage" id="editorStage" hidden>
+          <div class="preview-toolbar">
+            <div class="engine-status"><i id="engineDot"></i><span id="engineLabel">Preparing renderer</span></div>
+            <label class="compare-control">
+              <span>Before</span>
+              <input id="compareInput" type="range" min="0" max="100" value="0" aria-label="Before and after comparison">
+              <span>After</span>
+            </label>
+          </div>
+          <div class="image-frame" id="imageFrame">
+            <canvas id="previewCanvas" aria-label="Corrected photo preview"></canvas>
+            <div class="original-layer" id="originalLayer">
+              <img id="originalImage" alt="Original photograph">
+            </div>
+            <div class="compare-line" id="compareLine" hidden></div>
+            <div class="working-overlay" id="workingOverlay" hidden><span></span>Processing locally</div>
+          </div>
+          <div class="image-details">
+            <span id="imageDimensions"></span>
+            <span id="processingTime"></span>
+          </div>
+        </div>
+
+        <input id="fileInput" type="file" accept="image/jpeg,image/png,.jpg,.jpeg,.png" hidden>
+        <div class="drop-overlay" id="dropOverlay">Drop photo to open locally</div>
+      </section>
+
+      <aside class="control-panel" aria-label="Web alpha adjustments">
+        <div class="panel-header">
+          <div><p class="eyebrow">Adjustments</p><h2>Browser preview</h2></div>
+          <button class="text-button" id="resetButton" type="button" disabled>Reset</button>
+        </div>
+
+        <div class="trust-card">
+          <span class="trust-icon" aria-hidden="true">✓</span>
+          <span><strong>No upload endpoint</strong><small>The selected file stays in browser memory until you close or reload this page.</small></span>
+        </div>
+
+        <div class="controls" id="controls">
+          <label class="slider-control">
+            <span>Exposure</span><output data-output="exposure">0.00</output>
+            <input data-setting="exposure" type="range" min="-2" max="2" step=".01" value="0" disabled>
+          </label>
+          <label class="slider-control">
+            <span>Contrast</span><output data-output="contrast">+18</output>
+            <input data-setting="contrast" type="range" min="-.5" max=".8" step=".01" value=".18" disabled>
+          </label>
+          <label class="slider-control">
+            <span>Red recovery</span><output data-output="redRecovery">55</output>
+            <input data-setting="redRecovery" type="range" min="0" max="1.5" step=".01" value=".55" disabled>
+          </label>
+          <label class="slider-control">
+            <span>Warmth</span><output data-output="temperature">+8</output>
+            <input data-setting="temperature" type="range" min="-1" max="1" step=".01" value=".08" disabled>
+          </label>
+          <label class="slider-control">
+            <span>Tint</span><output data-output="tint">0</output>
+            <input data-setting="tint" type="range" min="-1" max="1" step=".01" value="0" disabled>
+          </label>
+          <label class="slider-control">
+            <span>Saturation</span><output data-output="saturation">+8</output>
+            <input data-setting="saturation" type="range" min="-1" max="1" step=".01" value=".08" disabled>
+          </label>
+        </div>
+
+        <details class="capability-card">
+          <summary><span>Device capabilities</span><small id="capabilitySummary">Checking…</small></summary>
+          <div class="capability-grid" id="capabilityGrid"></div>
+        </details>
+
+        <div class="export-card">
+          <div><strong>Local export</strong><small>Full resolution is processed on this device. It may take a moment on large files.</small></div>
+          <div class="export-actions">
+            <button class="secondary-button" id="exportPng" type="button" disabled>PNG</button>
+            <button class="primary-button" id="exportJpeg" type="button" disabled>Export JPEG</button>
+          </div>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <div class="toast-region" id="toastRegion" aria-live="polite"></div>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
