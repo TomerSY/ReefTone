@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: ReefTone documentation
+    url: https://github.com/TomerSY/ReefTone#readme
+    about: Check setup, color-management notes, and known limitations first.
