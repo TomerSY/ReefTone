@@ -24,7 +24,7 @@ function sitesBundle() {
         resolve(root, ".openai/hosting.json"),
         resolve(metadataDirectory, "hosting.json"),
       );
-      await readFile(resolve(root, "dist/static/index.html"), "utf8");
+      await readFile(resolve(root, "dist/client/index.html"), "utf8");
     },
   };
 }
@@ -32,7 +32,7 @@ function sitesBundle() {
 export default defineConfig({
   plugins: [sitesBundle()],
   build: {
-    outDir: "dist/static",
+    outDir: "dist/client",
     target: "es2022",
     sourcemap: true,
   },

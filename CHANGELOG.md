@@ -18,7 +18,7 @@ small refinements.
 
 ### Fixed
 
-- Hosted asset routing now maps public URLs to the packaged static application
+- Hosted assets now use the deployment platform's expected client bundle
 
 ### Planned
 

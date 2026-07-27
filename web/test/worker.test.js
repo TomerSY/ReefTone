@@ -19,7 +19,7 @@ test("hosted HTML receives an absolute social image origin", async () => {
   const response = await worker.fetch(new Request("https://alpha.example/"), env);
   assert.match(await response.text(), /https:\/\/alpha\.example\/og\.png/);
   assert.equal(response.headers.get("x-content-type-options"), "nosniff");
-  assert.equal(requestedAsset, "/static/index.html");
+  assert.equal(requestedAsset, "/");
 });
 
 test("non-HTML assets pass through unchanged", async () => {
@@ -34,5 +34,5 @@ test("non-HTML assets pass through unchanged", async () => {
     },
   };
   assert.equal(await (await worker.fetch(new Request("https://alpha.example/og.png"), env)).text(), "image-bytes");
-  assert.equal(requestedAsset, "/static/og.png");
+  assert.equal(requestedAsset, "/og.png");
 });

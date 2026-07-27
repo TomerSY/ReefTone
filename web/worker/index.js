@@ -1,14 +1,6 @@
 const worker = {
   async fetch(request, env) {
-    const assetUrl = new URL(request.url);
-    assetUrl.pathname = assetUrl.pathname === "/"
-      ? "/static/index.html"
-      : `/static${assetUrl.pathname}`;
-    const assetRequest = new Request(assetUrl, {
-      method: request.method,
-      headers: request.headers,
-    });
-    const response = await env.ASSETS.fetch(assetRequest);
+    const response = await env.ASSETS.fetch(request);
     const contentType = response.headers.get("content-type") || "";
     if (!contentType.includes("text/html")) return response;
 
