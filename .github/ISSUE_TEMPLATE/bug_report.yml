@@ -1,0 +1,56 @@
+name: Bug report
+description: Report a reproducible ReefTone problem
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please avoid uploading private source photographs unless they are safe to share publicly.
+  - type: textarea
+    id: summary
+    attributes:
+      label: What happened?
+      description: Describe the expected and actual behavior.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open…
+        2. Select…
+        3. Export…
+    validations:
+      required: true
+  - type: dropdown
+    id: media
+    attributes:
+      label: Source format
+      options:
+        - HEIC / HEIF
+        - JPEG
+        - PNG
+        - TIFF
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: color
+    attributes:
+      label: Color and dynamic-range information
+      description: For example, Display P3, sRGB, HDR gain map, HLG, PQ, or unknown.
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: macOS version, browser, Python version, and ReefTone version.
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs
+      render: shell

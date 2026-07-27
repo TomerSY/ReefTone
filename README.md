@@ -4,8 +4,9 @@ ReefTone is a non-destructive underwater color-restoration studio. It combines a
 adaptive Python image pipeline with a responsive local web interface, so it feels
 like a focused desktop editor today and can grow into a hosted product later.
 
-![Status](https://img.shields.io/badge/status-first%20working%20release-6ce0c4)
+[![Release](https://img.shields.io/github/v/release/TomerSY/ReefTone?display_name=tag&color=6ce0c4)](https://github.com/TomerSY/ReefTone/releases/latest)
 ![Python](https://img.shields.io/badge/python-3.11%2B-3776ab)
+[![License](https://img.shields.io/badge/license-MIT-8fa8a0)](LICENSE)
 
 ## What is included
 
@@ -19,6 +20,8 @@ like a focused desktop editor today and can grow into a hosted product later.
 - a neutral-point eyedropper plus per-slider reset and non-destructive bypass
 - a real-time before/after editor with distinct presets, undo/redo, drag-and-drop,
   and keyboard-accessible controls
+- point-centered magnifier zoom, fixed pixel-ratio views, and drag-to-pan
+- collapsible source color-space and dynamic-range information
 - full-resolution JPEG, PNG, and 16-bit TIFF export
 - 10-bit HEIC export with source ICC, EXIF, and available XMP preservation
 - format-specific color-fidelity guidance before export
@@ -98,6 +101,10 @@ For automatic reload while working on the interface:
 ```bash
 uvicorn reeftone.app:app --reload --port 8765
 ```
+
+ReefTone follows Semantic Versioning. See the [changelog](CHANGELOG.md) for the
+history and [release process](docs/releasing.md) for the version checklist and
+commit conventions.
 
 ## Color and precision notes
 

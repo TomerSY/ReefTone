@@ -1,0 +1,40 @@
+name: Feature request
+description: Suggest a ReefTone workflow or capability
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem to solve
+      description: What is difficult or impossible in the current workflow?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed experience
+      description: Describe the desired controls, behavior, and result.
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Color algorithm
+        - Image decoding or export
+        - HDR or wide color
+        - Editor UX
+        - Video
+        - Website
+        - Documentation
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: references
+    attributes:
+      label: References
+      description: Add research papers, example applications, or before/after references.
