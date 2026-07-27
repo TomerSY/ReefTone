@@ -16,6 +16,10 @@ small refinements.
   and WebAssembly support
 - Automated web color-math tests and production build validation
 
+### Fixed
+
+- Hosted asset routing now maps public URLs to the packaged static application
+
 ### Planned
 
 - Native HDR gain-map editing and reconstruction
