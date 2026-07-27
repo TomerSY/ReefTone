@@ -129,7 +129,7 @@ SDR result as HDR. The exact preservation matrix and native HDR roadmap are in
 
 The new [`web/`](web/) workspace is the beginning of a free public edition that
 does its image work on the user's device. The first alpha opens JPEG/PNG files,
-renders a WebGPU or Canvas preview, and exports locally. It has no photo upload
+renders a reliable local Canvas preview, and exports locally. It has no photo upload
 endpoint and does not change the Python editor.
 
 This alpha is a product and performance foundation, not yet a color-management

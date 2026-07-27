@@ -9,9 +9,12 @@ the public experience is built in small, testable releases.
 Available now:
 
 - local JPEG and PNG opening by file picker or drag-and-drop
-- WebGPU preview with a Canvas 2D fallback
-- exposure, contrast, red recovery, warmth, tint, and saturation controls
-- local before/after comparison
+- reliable Canvas 2D preview with local underwater scene analysis
+- Natural, Vivid, Deep water, Gentle, and Dramatic looks
+- the full Python settings contract: Light, Auto Restore, White Balance,
+  Presence, and Overall Mix
+- per-setting reset and bypass, undo/redo, copied edits, and a neutral eyedropper
+- swipe or whole-image comparison plus magnifier zoom and drag-to-pan
 - full-resolution JPEG or PNG export in a Web Worker
 - installable PWA metadata and a small offline application shell
 - browser capability reporting for WebGPU, Display P3, HDR displays,
@@ -56,10 +59,12 @@ Vite writes the deployable static application to `web/dist/`.
 
 ## Architecture direction
 
-The current JavaScript correction is a deliberately small prototype used to
-validate browser performance, interaction, and export. The next technical
-milestone is to move a shared, color-managed image core into WebAssembly so the
-Python and web products can use the same settings contract and reference tests.
+The JavaScript correction now shares the Python editor's defaults, ranges,
+presets, scene-analysis concepts, and processing order. Expensive OpenCV
+operations—especially CLAHE and multiscale pyramid fusion—are represented by a
+lighter browser approximation, so this is still not a claim of pixel parity.
+The next technical milestone is to move a shared, color-managed image core into
+WebAssembly so both products use identical processing and reference tests.
 
 HEIC, ICC/P3, and HDR will only be enabled when decode, working-space conversion,
 metadata behavior, and output tagging can be verified end to end.

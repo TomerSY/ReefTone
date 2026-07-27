@@ -10,15 +10,24 @@ small refinements.
 ### Added
 
 - Separate browser-local PWA alpha in `web/`
-- WebGPU photo preview with a Canvas 2D fallback
+- Reliable device-local Canvas photo preview
 - On-device JPEG/PNG opening, adjustments, comparison, and full-resolution export
 - Browser capability reporting for GPU, Display P3, HDR display, OffscreenCanvas,
   and WebAssembly support
 - Automated web color-math tests and production build validation
+- Web versions of the five curated looks and the full Light, Auto Restore,
+  White Balance, and Presence control groups
+- Per-setting reset and bypass, undo/redo, copied edits, neutral eyedropper,
+  swipe/full-image comparison, magnifier zoom, and drag-to-pan
+- Browser-side underwater scene analysis and the shared Python settings contract
 
 ### Fixed
 
 - Hosted assets now use the deployment platform's expected client bundle
+- The corrected preview no longer uses the silent-failing WebGPU shader path;
+  a reliable local Canvas renderer prevents black after-images
+- Navigation now checks the network before an offline cache to prevent stale
+  alpha releases from remaining visible after deployment
 
 ### Planned
 
