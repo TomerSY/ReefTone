@@ -1,10 +1,19 @@
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
-const APP_VERSION = "0.5.0";
+const APP_VERSION = "0.6.0";
 const LEVEL_CHANNELS = ["rgb", "red", "green", "blue"];
 const LEVEL_POINTS = ["black", "shadows", "midtone", "highlights", "white"];
 const LEVEL_DEFAULTS = [0, 0.25, 0.5, 0.75, 1];
 const LEVEL_VIEW = {width: 288, height: 128, padding: 12};
+const CONTROL_DEFAULTS = {
+  sharpen_amount: 0,
+  sharpen_radius: 1,
+  sharpen_threshold: 0.02,
+};
+const CONTROL_BYPASS_VALUES = {
+  sharpen_radius: 1,
+  sharpen_threshold: 0,
+};
 
 const state = {
   session: null,
@@ -14,7 +23,7 @@ const state = {
   history: [],
   future: [],
   compare: 50,
-  swipeEnabled: true,
+  swipeEnabled: false,
   fullBefore: false,
   zoomScale: 1,
   zoomMode: "fit",
@@ -213,7 +222,7 @@ async function activateSession(session) {
   drawLevelsHistogram();
   scrollToTop();
   alignImageLayers();
-  setSwipeEnabled(true);
+  setSwipeEnabled(false);
   setColorInfoExpanded(false);
   setZoomTool(false);
   setZoomMode("fit");
@@ -363,8 +372,11 @@ function restoreSnapshot(snapshot) {
 function effectiveSettings() {
   const effective = structuredClone(state.settings);
   state.bypassed.forEach(name => {
-    if (Object.hasOwn(effective, name)) effective[name] = 0;
+    if (Object.hasOwn(effective, name)) {
+      effective[name] = CONTROL_BYPASS_VALUES[name] ?? 0;
+    }
   });
+  if (state.bypassed.has("sharpening")) effective.sharpen_amount = 0;
   LEVEL_CHANNELS.forEach(channel => {
     if (!state.bypassed.has(`levels_${channel}`)) return;
     LEVEL_POINTS.forEach((point, index) => {
@@ -409,6 +421,9 @@ function updateHistoryButtons() {
 
 function displayValue(name, value) {
   if (name === "exposure") return `${value > 0 ? "+" : ""}${value.toFixed(2)}`;
+  if (name === "sharpen_amount") return `${Math.round(value * 100)}%`;
+  if (name === "sharpen_radius") return `${value.toFixed(1)} px`;
+  if (name === "sharpen_threshold") return `${Math.round(value * 100)}%`;
   const number = Math.round(value * 100);
   if (["master", "auto_restore", "red_recovery", "dehaze", "denoise"].includes(name)) return String(number);
   return `${number > 0 ? "+" : number < 0 ? "−" : ""}${Math.abs(number)}`;
@@ -433,13 +448,15 @@ function syncControls() {
     control?.classList.toggle("bypassed", bypassed);
     const bypassButton = control?.querySelector(".bypass-control");
     if (bypassButton) {
+      const readable = input.dataset.label || name.replaceAll("_", " ");
       bypassButton.setAttribute("aria-pressed", String(!bypassed));
-      bypassButton.title = bypassed ? `Enable ${name.replaceAll("_", " ")}` : `Temporarily disable ${name.replaceAll("_", " ")}`;
+      bypassButton.title = bypassed ? `Enable ${readable}` : `Temporarily disable ${readable}`;
     }
   });
   $("#autoToggle").checked = state.settings.auto_restore > 0;
   syncSampleStatus();
   renderLevelsControl();
+  syncSharpeningControl();
 }
 
 function applyPreset(name, record = true) {
@@ -474,11 +491,12 @@ function addPerControlActions() {
     const control = input.closest(".slider-control");
     if (!control || control.querySelector(".control-actions")) return;
     const name = input.dataset.setting;
-    const readable = name.replaceAll("_", " ");
+    const readable = input.dataset.label || name.replaceAll("_", " ");
+    const defaultValue = CONTROL_DEFAULTS[name] ?? 0;
     const actions = document.createElement("span");
     actions.className = "control-actions";
     actions.innerHTML = `
-      <button class="mini-control reset-control" type="button" title="Reset ${readable} to zero" aria-label="Reset ${readable} to zero">
+      <button class="mini-control reset-control" type="button" title="Reset ${readable} to default" aria-label="Reset ${readable} to default">
         <svg viewBox="0 0 24 24"><path d="M5 8v5h5"/><path d="M6.4 16a7 7 0 1 0 .2-8.2L5 10"/></svg>
       </button>
       <button class="mini-control bypass-control" type="button" title="Temporarily disable ${readable}" aria-label="Toggle ${readable}" aria-pressed="true">
@@ -490,8 +508,9 @@ function addPerControlActions() {
       event.preventDefault();
       event.stopPropagation();
       const previous = settingsSnapshot();
-      state.settings[name] = 0;
+      state.settings[name] = defaultValue;
       state.bypassed.delete(name);
+      if (name.startsWith("sharpen_")) state.bypassed.delete("sharpening");
       pushHistory(previous);
       syncControls();
       clearPresetSelection();
@@ -509,6 +528,40 @@ function addPerControlActions() {
       schedulePreview(0);
     });
   });
+}
+
+function syncSharpeningControl() {
+  const bypassed = state.bypassed.has("sharpening");
+  $("#sharpeningTool")?.classList.toggle("bypassed", bypassed);
+  const button = $("#sharpenBypass");
+  if (!button) return;
+  button.setAttribute("aria-pressed", String(!bypassed));
+  button.title = bypassed
+    ? "Enable sharpening"
+    : "Temporarily disable sharpening";
+}
+
+function resetSharpening() {
+  const previous = settingsSnapshot();
+  Object.entries(CONTROL_DEFAULTS).forEach(([name, value]) => {
+    state.settings[name] = value;
+    state.bypassed.delete(name);
+  });
+  state.bypassed.delete("sharpening");
+  pushHistory(previous);
+  syncControls();
+  clearPresetSelection();
+  schedulePreview(0);
+}
+
+function toggleSharpeningBypass() {
+  const previous = settingsSnapshot();
+  if (state.bypassed.has("sharpening")) state.bypassed.delete("sharpening");
+  else state.bypassed.add("sharpening");
+  pushHistory(previous);
+  syncSharpeningControl();
+  clearPresetSelection();
+  schedulePreview(0);
 }
 
 function levelsKey(channel, point) {
@@ -959,6 +1012,7 @@ function handleImageClick(event) {
 function resetSettings() {
   if (!state.session) return;
   applyPreset("natural");
+  setSwipeEnabled(false);
   toast("Adjustments reset to Natural");
 }
 
@@ -1039,6 +1093,8 @@ function bindEvents() {
   });
   $("#levelsReset").addEventListener("click", resetLevelsChannel);
   $("#levelsBypass").addEventListener("click", toggleLevelsBypass);
+  $("#sharpenReset").addEventListener("click", resetSharpening);
+  $("#sharpenBypass").addEventListener("click", toggleSharpeningBypass);
 
   let levelsDrag = null;
   elements.levelsEditor.addEventListener("pointerdown", event => {
@@ -1155,6 +1211,10 @@ function bindEvents() {
       const name = input.dataset.setting;
       state.settings[name] = Number(input.value);
       state.bypassed.delete(name);
+      if (name.startsWith("sharpen_")) {
+        state.bypassed.delete("sharpening");
+        syncSharpeningControl();
+      }
       updateRangeStyle(input);
       $(`[data-output="${name}"]`).value = displayValue(name, Number(input.value));
       clearPresetSelection();

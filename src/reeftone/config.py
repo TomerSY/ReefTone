@@ -32,6 +32,9 @@ class CorrectionSettings:
     vibrance: float = 0.22
     clarity: float = 0.16
     denoise: float = 0.03
+    sharpen_amount: float = 0.0
+    sharpen_radius: float = 1.0
+    sharpen_threshold: float = 0.02
     sample_red: float = 0.0
     sample_green: float = 0.0
     sample_blue: float = 0.0
@@ -76,6 +79,9 @@ class CorrectionSettings:
         "vibrance": (-1.0, 1.0),
         "clarity": (-1.0, 1.0),
         "denoise": (0.0, 1.0),
+        "sharpen_amount": (0.0, 2.0),
+        "sharpen_radius": (0.3, 5.0),
+        "sharpen_threshold": (0.0, 0.2),
         "sample_red": (0.0, 1.0),
         "sample_green": (0.0, 1.0),
         "sample_blue": (0.0, 1.0),

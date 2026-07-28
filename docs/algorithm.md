@@ -35,7 +35,7 @@ Decode + orient → RGB float32
         ↓
 Robust scene analysis
         ↓
-Red compensation + Green correction + adaptive gray-world balance
+Underwater-aware Red + Green + Blue balance and adaptive gray-world balance
         ↓
 Optional user-sampled neutral-point gains
         ↓
@@ -46,7 +46,7 @@ Exposure → black/white points → tone curve
         ↓
 RGB Levels → Red → Green → Blue Levels
         ↓
-Color → clarity/denoise → non-destructive master mix
+Color → clarity/denoise → thresholded sharpening → non-destructive master mix
 ```
 
 The same `correct_image()` function is used for preview, full-resolution export,
@@ -61,7 +61,7 @@ cast, low dynamic range, low light, and underwater confidence.
 
 ### 2. Underwater white balance
 
-Red recovery follows the Ancuti-style compensation shape:
+Red balance retains the established Ancuti-style compensation shape:
 
 ```text
 R' = R + α(Ḡ - R̄)(1 - R)G
@@ -73,10 +73,11 @@ magenta. After compensation, robust channel means are measured again and a
 confidence-weighted gray-world gain brings red closer to green without forcing the
 entire water column to neutral gray.
 
-Green correction is a scene-relative artist control. Positive values move a
+Green balance is a scene-relative artist control. Positive values move a
 green-heavy channel toward the mean of red and blue; negative values can restore
-green when it is deficient. Temperature and tint remain direct creative gains.
-All three controls are neutral at zero.
+green when it is deficient. Blue balance remains scene-adaptive, and Temperature
+and Tint remain direct creative gains. The serialized keys remain
+`red_recovery`, `green_correction`, and `blue_balance` for backward compatibility.
 
 ### 3. Neutral-point eyedropper
 
@@ -108,14 +109,18 @@ controls how strongly the fused result replaces the balanced base.
   RGB before the Red, Green, and Blue channel curves;
 - vibrance preferentially affects low-saturation colors;
 - clarity is a mid-frequency unsharp mask;
-- denoise is an edge-preserving bilateral blend.
+- denoise is an edge-preserving bilateral blend;
+- Sharpening uses a final float32 unsharp mask. Amount is 0–200%, Radius is
+  0.3–5.0 pixels, and Threshold is a 0–20% luminance-difference gate that suppresses
+  small noise before detail is added. Amount defaults to zero, so legacy settings
+  and every curated preset remain output-neutral.
 
 ### 6. Non-destructive controls
 
 Every slider has two local actions:
 
-- reset sets only that setting to its neutral value of zero;
-- bypass sends zero for that setting while preserving its chosen value.
+- reset sets only that setting to its documented default;
+- bypass sends its documented neutral value while preserving its chosen value.
 
 Preset values are intentionally separated, and the master mix blends the entire
 corrected result with the untouched source.

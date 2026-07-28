@@ -22,7 +22,7 @@ small refinements.
 - Browser-side underwater scene analysis and the shared Python settings contract
 - Web parity with the canonical desktop typography, spacing, toolbar, inspector,
   Levels graph, disabled states, and responsive breakpoints
-- Browser Green correction and five-point RGB/Red/Green/Blue Levels in preview
+- Browser Green balance and five-point RGB/Red/Green/Blue Levels in preview
   and full-resolution worker export
 
 ### Fixed
@@ -42,6 +42,29 @@ small refinements.
 - Transfer-function-aware HLG and PQ processing
 - Temporally stable HEVC video correction
 - Shared color-managed WebAssembly core for Python/web algorithm parity
+
+## [0.6.0] - 2026-07-28
+
+### Added
+
+- Output-neutral, float32 unsharp-mask Sharpening in Presence with Amount,
+  Radius, and Threshold controls
+- Per-control and group reset/bypass, undo/redo, copied-settings, preview, API,
+  session, and full-resolution export support for Sharpening
+- Sharpening coverage for neutral output, radius behavior, threshold noise
+  suppression, finite edge enhancement, clipping safety, and legacy settings
+
+### Changed
+
+- Visible underwater white-balance controls are now consistently named
+  Red balance, Green balance, and Blue balance while their serialized keys and
+  established adaptive processing remain backward compatible
+- All desktop text and icon sizes, related control geometry, panel sizing, and
+  responsive breakpoints now resolve at exactly 1.5× the previous canonical scale
+- Whole-image Before/After is now the default comparison mode when a photo opens
+  or adjustments reset; Swipe is an explicit opt-in and remains hidden until used
+- The desktop UI/settings contract now records the exact 0.6.0 reference required
+  for the subsequent web parity pass
 
 ## [0.5.0] - 2026-07-28
 
@@ -123,7 +146,8 @@ small refinements.
 - Local FastAPI service and responsive editor
 - Non-destructive sessions, presets, undo/redo, and before/after comparison
 
-[Unreleased]: https://github.com/TomerSY/ReefTone/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/TomerSY/ReefTone/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/TomerSY/ReefTone/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/TomerSY/ReefTone/compare/v0.4.1...v0.5.0
 [0.4.1]: https://github.com/TomerSY/ReefTone/releases/tag/v0.4.1
 [0.4.0]: https://github.com/TomerSY/ReefTone/compare/v0.3.0...v0.4.0

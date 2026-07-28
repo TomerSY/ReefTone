@@ -160,7 +160,7 @@ def _adaptive_white_balance(
         * (0.35 + recovered[..., 1])
     )
 
-    # Positive Green correction moves a green-heavy scene toward the mean of the
+    # Positive Green balance moves a green-heavy scene toward the mean of the
     # red and blue channels. Negative values deliberately add green when needed.
     green_target = (red_mean + blue_mean) * 0.5
     green_gap = green_target - green_mean
@@ -389,6 +389,33 @@ def _apply_detail(image: FloatImage, clarity: float, denoise: float) -> FloatIma
     return np.clip(result, 0.0, 1.0)
 
 
+def _apply_sharpening(
+    image: FloatImage,
+    amount: float,
+    radius: float,
+    threshold: float,
+) -> FloatImage:
+    """Apply thresholded unsharp masking in float precision."""
+
+    if amount <= 0.001:
+        return image
+    sigma = max(0.3, float(radius))
+    blurred = cv2.GaussianBlur(
+        image,
+        (0, 0),
+        sigmaX=sigma,
+        sigmaY=sigma,
+        borderType=cv2.BORDER_REFLECT101,
+    )
+    detail = image - blurred
+    if threshold > 0.0:
+        magnitude = np.abs(_rgb_luma(detail))
+        feather = max(float(threshold) * 0.5, 1e-4)
+        gate = np.clip((magnitude - float(threshold)) / feather, 0.0, 1.0)
+        detail = detail * gate[..., None]
+    return np.clip(image + detail * np.float32(amount), 0.0, 1.0).astype(np.float32)
+
+
 def correct_image(
     image: NDArray[np.generic],
     settings: CorrectionSettings | None = None,
@@ -406,6 +433,12 @@ def correct_image(
     corrected = _apply_levels(corrected, settings)
     corrected = _apply_color(corrected, settings)
     corrected = _apply_detail(corrected, settings.clarity, settings.denoise)
+    corrected = _apply_sharpening(
+        corrected,
+        settings.sharpen_amount,
+        settings.sharpen_radius,
+        settings.sharpen_threshold,
+    )
 
     master = np.float32(settings.master)
     return np.clip(original * (1.0 - master) + corrected * master, 0.0, 1.0).astype(np.float32)

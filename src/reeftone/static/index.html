@@ -5,10 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#08110f">
   <meta name="description" content="ReefTone — adaptive underwater color restoration.">
-  <meta name="reeftone-version" content="0.5.0">
+  <meta name="reeftone-version" content="0.6.0">
   <title>ReefTone Studio</title>
   <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="/static/styles.css?v=0.5.0">
+  <link rel="stylesheet" href="/static/styles.css?v=0.6.0">
 </head>
 <body>
   <div class="app" id="app">
@@ -69,11 +69,11 @@
             </section>
           </div>
           <div class="toolbar-right">
-            <button class="tool-button active" id="swipeToggle" type="button" aria-pressed="true">
+            <button class="tool-button" id="swipeToggle" type="button" aria-pressed="false" title="Enable draggable split-image comparison">
               <svg viewBox="0 0 24 24"><path d="M12 3v18"/><rect x="3" y="5" width="18" height="14" rx="2"/></svg>
               Swipe
             </button>
-            <button class="tool-button" id="beforeAfterButton" type="button" disabled aria-pressed="false">Before</button>
+            <button class="tool-button" id="beforeAfterButton" type="button" aria-pressed="false" title="Show the original over the whole image">Before</button>
             <div class="zoom-controls segmented" role="group" aria-label="Preview zoom">
               <button id="fitButton" type="button" class="active" title="Fit the entire image">Fit</button>
               <button type="button" data-zoom=".5" title="Half-size pixels">1:2</button>
@@ -131,13 +131,13 @@
             <div class="corrected-layer" id="correctedLayer">
               <img id="correctedImage" alt="Color-corrected underwater photo">
             </div>
-            <div class="compare-line" id="compareLine" role="slider" tabindex="0" aria-label="Before and after comparison" aria-valuemin="0" aria-valuemax="100" aria-valuenow="50">
+            <div class="compare-line" id="compareLine" role="slider" tabindex="0" aria-label="Before and after comparison" aria-valuemin="0" aria-valuemax="100" aria-valuenow="50" hidden>
               <span class="compare-handle">
                 <svg viewBox="0 0 24 24"><path d="m9 8-4 4 4 4m6-8 4 4-4 4"/></svg>
               </span>
             </div>
-            <span class="image-label before-label">Before</span>
-            <span class="image-label after-label">After</span>
+            <span class="image-label before-label" hidden>Before</span>
+            <span class="image-label after-label" hidden>After</span>
             <span class="sample-marker" id="sampleMarker" hidden aria-hidden="true"></span>
             <div class="processing-overlay" id="processingOverlay" aria-live="polite">
               <span class="spinner"></span><span>Refining preview</span>
@@ -263,7 +263,7 @@
 
           <section class="control-section">
             <div class="section-heading balance-heading">
-              <div><h3>White balance</h3><p>Recover absorbed wavelengths</p></div>
+              <div><h3>White balance</h3><p id="whiteBalanceHelp">Underwater-aware balance adapts to wavelength loss; these are not simple RGB multipliers.</p></div>
               <button class="eyedropper-button" id="eyedropperButton" type="button" aria-pressed="false" title="Sample a neutral point from the photo">
                 <svg viewBox="0 0 24 24"><path d="m19 3 2 2-8.5 8.5-3-3L18 2a1.4 1.4 0 0 1 2 0Z"/><path d="m8.5 11.5-5 5v4h4l5-5"/><path d="M4 20h4"/></svg>
                 Sample neutral
@@ -276,16 +276,16 @@
             </div>
             <div class="control-list">
               <label class="slider-control">
-                <span>Red recovery</span><output data-output="red_recovery">95</output>
-                <input data-setting="red_recovery" type="range" min="0" max="1.5" step=".01" value=".95">
+                <span>Red balance</span><output data-output="red_recovery">95</output>
+                <input data-setting="red_recovery" data-label="Red balance" type="range" min="0" max="1.5" step=".01" value=".95" aria-label="Red balance" aria-describedby="whiteBalanceHelp" title="Underwater-aware red balance adapts to measured red attenuation.">
               </label>
               <label class="slider-control bipolar">
-                <span>Green correction</span><output data-output="green_correction">0</output>
-                <input data-setting="green_correction" type="range" min="-1" max="1" step=".01" value="0">
+                <span>Green balance</span><output data-output="green_correction">0</output>
+                <input data-setting="green_correction" data-label="Green balance" type="range" min="-1" max="1" step=".01" value="0" aria-label="Green balance" aria-describedby="whiteBalanceHelp" title="Underwater-aware green balance compensates a measured green-heavy or green-light cast.">
               </label>
               <label class="slider-control bipolar">
                 <span>Blue balance</span><output data-output="blue_balance">+24</output>
-                <input data-setting="blue_balance" type="range" min="-1" max="1" step=".01" value=".24">
+                <input data-setting="blue_balance" data-label="Blue balance" type="range" min="-1" max="1" step=".01" value=".24" aria-label="Blue balance" aria-describedby="whiteBalanceHelp" title="Underwater-aware blue balance adapts to measured blue dominance.">
               </label>
               <label class="slider-control">
                 <span>Fusion clarity</span><output data-output="dehaze">38</output>
@@ -320,6 +320,31 @@
                 <span>Clarity</span><output data-output="clarity">+16</output>
                 <input data-setting="clarity" type="range" min="-1" max="1" step=".01" value=".16">
               </label>
+              <div class="sharpening-tool" id="sharpeningTool">
+                <div class="sharpening-heading">
+                  <span><strong>Sharpening</strong><small>Thresholded unsharp mask</small></span>
+                  <span class="sharpening-actions">
+                    <button class="mini-control" id="sharpenReset" type="button" title="Reset sharpening controls" aria-label="Reset sharpening controls">
+                      <svg viewBox="0 0 24 24"><path d="M5 8v5h5"/><path d="M6.4 16a7 7 0 1 0 .2-8.2L5 10"/></svg>
+                    </button>
+                    <button class="mini-control bypass-control" id="sharpenBypass" type="button" title="Temporarily disable sharpening" aria-label="Toggle sharpening" aria-pressed="true">
+                      <svg viewBox="0 0 24 24"><path d="M2.5 12s3.5-5 9.5-5 9.5 5 9.5 5-3.5 5-9.5 5-9.5-5-9.5-5Z"/><circle cx="12" cy="12" r="2.5"/></svg>
+                    </button>
+                  </span>
+                </div>
+                <label class="slider-control sharpening-control">
+                  <span>Amount</span><output data-output="sharpen_amount">0%</output>
+                  <input data-setting="sharpen_amount" data-label="Sharpening amount" type="range" min="0" max="2" step=".01" value="0" aria-label="Sharpening amount" title="Strength of edge detail added, from 0% to 200%.">
+                </label>
+                <label class="slider-control sharpening-control">
+                  <span>Radius</span><output data-output="sharpen_radius">1.0 px</output>
+                  <input data-setting="sharpen_radius" data-label="Sharpening radius" type="range" min=".3" max="5" step=".1" value="1" aria-label="Sharpening radius" title="Blur radius in pixels used to find detail edges.">
+                </label>
+                <label class="slider-control sharpening-control">
+                  <span>Threshold</span><output data-output="sharpen_threshold">2%</output>
+                  <input data-setting="sharpen_threshold" data-label="Sharpening threshold" type="range" min="0" max=".2" step=".001" value=".02" aria-label="Sharpening threshold" title="Minimum luminance difference sharpened; higher values protect fine noise.">
+                </label>
+              </div>
               <label class="slider-control">
                 <span>Denoise</span><output data-output="denoise">3</output>
                 <input data-setting="denoise" type="range" min="0" max="1" step=".01" value=".03">
@@ -378,6 +403,6 @@
   </dialog>
 
   <div class="toast-region" id="toastRegion" aria-live="polite"></div>
-  <script src="/static/app.js?v=0.5.0" defer></script>
+  <script src="/static/app.js?v=0.6.0" defer></script>
 </body>
 </html>

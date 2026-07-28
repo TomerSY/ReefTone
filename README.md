@@ -14,9 +14,10 @@ like a focused desktop editor today and can grow into a hosted product later.
 - base bit-depth, ICC/P3, transfer-function, HDR gain-map, and auxiliary-image detection
 - float32 processing from decode through correction
 - scene analysis for red attenuation, cyan cast, haze, and low light
-- underwater red compensation, Green correction, and confidence-gated white balance
+- underwater-aware Red, Green, and Blue balance with confidence-gated white balance
 - research-backed multiscale fusion of color-balanced and contrast-enhanced inputs
-- exposure, contrast, five-point RGB/channel Levels, tone, vibrance, clarity, and denoise
+- exposure, contrast, five-point RGB/channel Levels, tone, vibrance, clarity,
+  thresholded unsharp-mask sharpening, and denoise
 - a neutral-point eyedropper plus per-slider reset and non-destructive bypass
 - a real-time before/after editor with distinct presets, undo/redo, drag-and-drop,
   and keyboard-accessible controls
@@ -56,13 +57,16 @@ screen. You can also drag a file anywhere over the app.
 
 1. Open a photo and start with **Natural**. Use **Dramatic** for a warmer,
    darker, high-contrast treatment.
-2. Use the comparison divider to check skin, coral, and open-water gradients.
-3. Adjust **Red recovery** before adding saturation. This restores missing balance
-   more naturally than globally boosting color.
-4. Use **Green correction** when green dominates after red recovery, then refine
-   tonal placement with the five Levels markers.
+2. Hold **Before** for a whole-image check, or explicitly enable **Swipe** for a
+   draggable divider.
+3. Adjust **Red balance** before adding saturation. It is an underwater-aware
+   recovery control, not a naive red-channel multiplier.
+4. Use **Green balance** when green dominates after Red balance, then refine tonal
+   placement with the five Levels markers. **Blue balance** handles blue dominance.
 5. Use **Fusion clarity** to blend in the multiscale contrast branch.
-6. Export a JPEG for sharing or a 16-bit TIFF as a high-quality editing master.
+6. Add **Sharpening** only when needed: Amount controls strength, Radius controls
+   the edge scale in pixels, and Threshold protects fine noise.
+7. Export a JPEG for sharing or a 16-bit TIFF as a high-quality editing master.
 
 Use the eyedropper only on something that should be gray, white, or neutral.
 ReefTone averages a small patch and balances it without changing any other slider.
