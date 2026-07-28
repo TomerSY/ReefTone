@@ -20,6 +20,10 @@ small refinements.
 - Per-setting reset and bypass, undo/redo, copied edits, neutral eyedropper,
   swipe/full-image comparison, magnifier zoom, and drag-to-pan
 - Browser-side underwater scene analysis and the shared Python settings contract
+- Web parity with the canonical desktop typography, spacing, toolbar, inspector,
+  Levels graph, disabled states, and responsive breakpoints
+- Browser Green correction and five-point RGB/Red/Green/Blue Levels in preview
+  and full-resolution worker export
 
 ### Fixed
 
@@ -28,6 +32,9 @@ small refinements.
   a reliable local Canvas renderer prevents black after-images
 - Navigation now checks the network before an offline cache to prevent stale
   alpha releases from remaining visible after deployment
+- Web magnifier focal zoom now follows the desktop 25-percentage-point step
+- Unsupported web formats and color workflows remain visible in their desktop
+  locations but are explicitly disabled instead of appearing functional
 
 ### Planned
 

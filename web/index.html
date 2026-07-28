@@ -1,214 +1,294 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#07110f">
-  <meta name="description" content="ReefTone Web Alpha — private underwater photo correction that runs on your device.">
+  <meta name="theme-color" content="#08110f">
+  <meta name="description" content="ReefTone Web — private underwater color restoration that runs on your device.">
+  <meta name="reeftone-version" content="0.5.0-alpha.3">
   <meta property="og:type" content="website">
-  <meta property="og:title" content="ReefTone Web Alpha">
+  <meta property="og:title" content="ReefTone Web">
   <meta property="og:description" content="Private underwater photo correction that runs entirely on your device.">
   <meta property="og:image" content="__REEFTONE_ORIGIN__/og.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta property="og:image:alt" content="A naturally color-corrected sea turtle swimming over a coral reef.">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="ReefTone Web Alpha">
+  <meta name="twitter:title" content="ReefTone Web">
   <meta name="twitter:description" content="Private underwater photo correction that runs entirely on your device.">
   <meta name="twitter:image" content="__REEFTONE_ORIGIN__/og.png">
-  <title>ReefTone Web Alpha</title>
+  <title>ReefTone Studio · Web</title>
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 </head>
 <body>
-  <div class="app-shell">
+  <div class="app" id="app">
     <header class="topbar">
-      <a class="brand" href="/" aria-label="ReefTone Web home">
-        <span class="brand-mark" aria-hidden="true">R</span>
-        <span><strong>ReefTone</strong><small>Studio · Web Alpha</small></span>
-      </a>
-      <div class="document-state">
-        <strong id="documentName">New restoration</strong>
-        <small id="documentMeta">Ready · nothing leaves this device</small>
+      <button class="brand" type="button" id="homeButton" aria-label="ReefTone home">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 32 32"><path d="M5 19c4.4-7.5 9.7-11.2 16-11 2.5.1 4.5.8 6 2-5.8.4-10.1 2.7-13 6.7C11.5 20.2 8.5 22 5 22v-3Z"/><path d="M6 25c5.4-.2 9.2-2 11.6-5.3 2.1-2.9 5.2-4.6 9.4-5.1-1.2 5.6-4.7 9.3-10.4 11.2-4.2 1.4-7.7 1.1-10.6-.8Z"/></svg>
+        </span>
+        <span><strong>ReefTone</strong><small>Studio</small></span>
+      </button>
+
+      <div class="document-title" id="documentTitle" aria-live="polite">
+        <span class="document-name" id="documentName">New restoration</span>
+        <span class="save-state" id="documentMeta">Ready · local browser edition</span>
       </div>
+
       <div class="top-actions">
-        <span class="privacy-pill"><i></i>Local &amp; private</span>
-        <button class="icon-button" id="undoButton" type="button" aria-label="Undo" title="Undo" disabled>↶</button>
-        <button class="icon-button" id="redoButton" type="button" aria-label="Redo" title="Redo" disabled>↷</button>
-        <button class="secondary-button" id="openButton" type="button">Open photo</button>
-        <button class="primary-button" id="exportJpeg" type="button" disabled>Export JPEG</button>
+        <span class="privacy-pill" title="Your images stay on this device">
+          <span class="status-dot"></span> Local &amp; private
+        </span>
+        <button class="icon-button" id="undoButton" type="button" disabled aria-label="Undo" title="Undo (⌘Z)">
+          <svg viewBox="0 0 24 24"><path d="M9 7 4 12l5 5"/><path d="M5 12h8a6 6 0 0 1 6 6"/></svg>
+        </button>
+        <button class="icon-button" id="redoButton" type="button" disabled aria-label="Redo" title="Redo (⇧⌘Z)">
+          <svg viewBox="0 0 24 24"><path d="m15 7 5 5-5 5"/><path d="M19 12h-8a6 6 0 0 0-6 6"/></svg>
+        </button>
+        <button class="primary-button" id="exportButton" type="button" disabled>
+          <svg viewBox="0 0 24 24"><path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M5 19h14"/></svg>
+          Export
+        </button>
       </div>
     </header>
 
     <main class="workspace">
-      <section class="preview-panel" aria-label="Photo preview">
-        <div class="alpha-notice">
-          <strong>0.5.0 alpha.2</strong>
-          <span>Local browser edition · the Python editor remains the color-quality reference.</span>
+      <section class="canvas-area" aria-label="Image preview">
+        <div class="canvas-toolbar" id="canvasToolbar" hidden>
+          <div class="toolbar-left">
+            <div class="segmented presets" role="group" aria-label="Looks">
+              <button type="button" class="active" data-preset="natural">Natural</button>
+              <button type="button" data-preset="vivid">Vivid</button>
+              <button type="button" data-preset="deep">Deep water</button>
+              <button type="button" data-preset="gentle">Gentle</button>
+              <button type="button" data-preset="dramatic">Dramatic</button>
+            </div>
+            <section class="canvas-color-info" id="colorCard">
+              <button class="color-card-toggle" id="colorCardToggle" type="button" aria-expanded="false" aria-controls="colorCardContent">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5m0-8h.01"/></svg>
+                <span><strong>Color information</strong><small id="sourceSummary">Browser-decoded preview</small></span>
+                <svg class="disclosure-icon" viewBox="0 0 24 24"><path d="m8 10 4 4 4-4"/></svg>
+              </button>
+              <div class="color-card-content" id="colorCardContent" hidden>
+                <div class="color-card-heading">
+                  <span><strong>Browser working preview</strong><small id="capabilitySummary">Checking device capabilities</small></span>
+                  <span class="color-badges"><span>SDR</span><span>sRGB</span></span>
+                </div>
+                <div id="sourceDetails"></div>
+                <div class="capability-grid" id="capabilityGrid"></div>
+              </div>
+            </section>
+          </div>
+          <div class="toolbar-right">
+            <button class="tool-button active" id="swipeToggle" type="button" aria-pressed="true">
+              <svg viewBox="0 0 24 24"><path d="M12 3v18"/><rect x="3" y="5" width="18" height="14" rx="2"/></svg>
+              Swipe
+            </button>
+            <button class="tool-button" id="beforeAfterButton" type="button" disabled aria-pressed="false">Before</button>
+            <div class="zoom-controls segmented" role="group" aria-label="Preview zoom">
+              <button type="button" data-zoom="fit" class="active" title="Fit the entire image">Fit</button>
+              <button type="button" data-zoom=".5" title="Half-size pixels">1:2</button>
+              <button type="button" data-zoom="1" title="One image pixel per screen pixel">1:1</button>
+              <button type="button" data-zoom="fill" title="Fill the canvas">Fill</button>
+              <button type="button" data-zoom="2" title="Two screen pixels per image pixel">2:1</button>
+              <button id="zoomToolButton" type="button" aria-pressed="false" title="Select magnifier: click the image +25%, right-click −25%">
+                <svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5M10.5 7.5v6m-3-3h6"/></svg>
+                <span id="zoomPercent">100%</span>
+              </button>
+            </div>
+          </div>
         </div>
 
         <div class="empty-state" id="emptyState">
-          <div class="empty-orbit" aria-hidden="true"><span></span><i></i></div>
+          <div class="empty-visual" aria-hidden="true">
+            <div class="orb orb-one"></div>
+            <div class="orb orb-two"></div>
+            <svg viewBox="0 0 180 140">
+              <defs><linearGradient id="photoFill" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#235f62"/><stop offset="1" stop-color="#0c282b"/></linearGradient></defs>
+              <rect x="25" y="14" width="130" height="108" rx="14" fill="url(#photoFill)" stroke="#5dc8b5" stroke-opacity=".35"/>
+              <circle cx="65" cy="50" r="12" fill="#d8f9e8" fill-opacity=".72"/>
+              <path d="m35 105 36-36 22 20 15-14 37 30H35Z" fill="#74d0ba" fill-opacity=".48"/>
+              <path d="M88 42c19 10 32 25 39 45" fill="none" stroke="#d8f9e8" stroke-opacity=".5" stroke-width="3" stroke-linecap="round"/>
+              <path d="m119 77 9 11 2-14" fill="none" stroke="#d8f9e8" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
           <p class="eyebrow">Your underwater darkroom</p>
           <h1>Bring the reef back to life.</h1>
           <p>Choose a JPEG or PNG. ReefTone reads the water cast, restores lost color, and creates the download directly on this device.</p>
-          <button class="primary-button large" id="chooseButton" type="button">Choose a local photo</button>
-          <small>JPEG · PNG · local processing · HEIC and HDR follow after color-safe validation</small>
+          <div class="empty-actions">
+            <button class="primary-button large" id="chooseButton" type="button">
+              <svg viewBox="0 0 24 24"><path d="M12 16V4m0 0L8 8m4-4 4 4"/><path d="M5 20h14"/></svg>
+              Choose a photo
+            </button>
+            <span>or drop it anywhere</span>
+          </div>
+          <div class="format-row">
+            <span class="available-format">JPEG · PNG</span><i></i>
+            <span class="coming-format">HEIC · TIFF · HDR <b>Coming later</b></span><i></i>
+            <span>Local processing</span>
+          </div>
+          <div class="library-section unavailable-feature" aria-disabled="true">
+            <div class="library-heading"><span>Photos in this folder</span><span>Coming later</span></div>
+            <button class="library-item" type="button" disabled><strong>Local folder library</strong><small>Desktop service required</small></button>
+          </div>
         </div>
 
         <div class="editor-stage" id="editorStage" hidden>
-          <div class="studio-toolbar">
-            <div class="toolbar-group">
-              <div class="segmented presets" id="presetButtons" role="group" aria-label="Looks">
-                <button class="active" type="button" data-preset="natural">Natural</button>
-                <button type="button" data-preset="vivid">Vivid</button>
-                <button type="button" data-preset="deep">Deep water</button>
-                <button type="button" data-preset="gentle">Gentle</button>
-                <button type="button" data-preset="dramatic">Dramatic</button>
-              </div>
-              <details class="source-card" id="sourceCard">
-                <summary>Color information <small id="sourceSummary">Browser-decoded preview</small></summary>
-                <div id="sourceDetails"></div>
-              </details>
-            </div>
-            <div class="toolbar-group right">
-              <button class="tool-button active" id="swipeToggle" type="button" aria-pressed="true">Swipe</button>
-              <button class="tool-button" id="beforeAfterButton" type="button" aria-pressed="false" disabled>Before</button>
-              <div class="segmented zoom-controls" role="group" aria-label="Preview zoom">
-                <button type="button" data-zoom="fit" class="active">Fit</button>
-                <button type="button" data-zoom=".5">1:2</button>
-                <button type="button" data-zoom="1">1:1</button>
-                <button type="button" data-zoom="fill">Fill</button>
-                <button type="button" data-zoom="2">2:1</button>
-                <button type="button" id="zoomToolButton" aria-pressed="false" title="Click image +10%; right-click −10%">⌕ <span id="zoomPercent">100%</span></button>
-              </div>
-            </div>
-          </div>
-
-          <div class="preview-toolbar">
-            <div class="engine-status"><i id="engineDot" class="ready"></i><span id="engineLabel">Reliable local canvas preview</span></div>
-            <label class="compare-control" id="compareControl">
-              <span>Before</span>
-              <input id="compareInput" type="range" min="0" max="100" value="50" aria-label="Before and after comparison">
-              <span>After</span>
-            </label>
-          </div>
-
-          <div class="viewport" id="viewport">
+          <div class="image-shell" id="viewport">
             <div class="image-frame" id="imageFrame">
-              <canvas id="previewCanvas" aria-label="Corrected photo preview"></canvas>
-              <div class="original-layer" id="originalLayer">
-                <img id="originalImage" alt="Original photograph">
+              <img id="originalImage" alt="Original underwater photo">
+              <div class="corrected-layer" id="correctedLayer">
+                <canvas id="previewCanvas" aria-label="Color-corrected underwater photo"></canvas>
               </div>
-              <div class="compare-line" id="compareLine">
-                <span>↔</span>
+              <div class="compare-line" id="compareLine" role="slider" tabindex="0" aria-label="Before and after comparison" aria-valuemin="0" aria-valuemax="100" aria-valuenow="50">
+                <span class="compare-handle"><svg viewBox="0 0 24 24"><path d="m9 8-4 4 4 4m6-8 4 4-4 4"/></svg></span>
               </div>
-              <span class="sample-marker" id="sampleMarker" hidden></span>
+              <span class="image-label before-label">Before</span>
+              <span class="image-label after-label">After</span>
+              <span class="sample-marker" id="sampleMarker" hidden aria-hidden="true"></span>
+              <div class="processing-overlay" id="workingOverlay" hidden><span class="spinner"></span><span>Refining preview</span></div>
             </div>
-            <div class="working-overlay" id="workingOverlay" hidden><span></span>Processing locally</div>
           </div>
-
-          <div class="image-details">
-            <span id="imageDimensions"></span>
-            <span id="processingTime"></span>
-          </div>
+          <div class="image-meta"><span id="imageDimensions"></span><span id="processingTime"></span></div>
         </div>
 
-        <input id="fileInput" type="file" accept="image/jpeg,image/png,.jpg,.jpeg,.png" hidden>
-        <div class="drop-overlay" id="dropOverlay">Drop photo to restore locally</div>
+        <div class="drop-overlay" id="dropOverlay">
+          <div><svg viewBox="0 0 24 24"><path d="M12 16V4m0 0L8 8m4-4 4 4"/><path d="M5 20h14"/></svg><strong>Drop to restore</strong><span>Your original stays untouched</span></div>
+        </div>
       </section>
 
-      <aside class="control-panel" aria-label="Color restoration controls">
-        <div class="panel-header">
+      <aside class="inspector" id="inspector" aria-label="Correction controls">
+        <div class="inspector-header">
           <div><p class="eyebrow">Adjustments</p><h2>Color restoration</h2></div>
-          <div class="panel-actions">
+          <div class="inspector-actions">
             <button class="text-button" id="copySettingsButton" type="button" disabled>Copy settings</button>
             <button class="text-button" id="resetButton" type="button" disabled>Reset</button>
           </div>
         </div>
 
         <div class="analysis-card" id="analysisCard">
-          <span class="analysis-icon">◒</span>
-          <span><strong id="analysisLabel">Awaiting a photo</strong><small id="analysisText">Auto Restore adapts to each water profile.</small></span>
-          <b id="confidenceBadge">AUTO</b>
+          <div class="analysis-icon"><svg viewBox="0 0 24 24"><path d="M12 3c3.7 4.6 5.5 8.1 5.5 10.5a5.5 5.5 0 0 1-11 0C6.5 11.1 8.3 7.6 12 3Z"/><path d="M9.5 15.5c.7 1 1.5 1.5 2.5 1.5"/></svg></div>
+          <div><span id="analysisLabel">Awaiting a photo</span><small id="analysisText">Auto Restore adapts to each water profile.</small></div>
+          <span class="confidence" id="confidenceBadge">AUTO</span>
         </div>
 
         <div class="settings-shelf" id="settingsShelf" hidden>
-          <div><strong>Copied edits</strong><small>Temporary</small></div>
+          <div class="settings-shelf-heading"><span>Copied edits</span><small>Temporary</small></div>
           <div id="settingsShelfItems"></div>
         </div>
 
         <div class="controls-scroll">
           <section class="control-section">
             <button class="section-toggle" type="button" aria-expanded="true">
-              <span><strong>Light</strong><small>Tone and dynamic range</small></span><b>⌄</b>
+              <span><h3>Light</h3><p>Tone and dynamic range</p></span>
+              <svg viewBox="0 0 24 24"><path d="m8 10 4 4 4-4"/></svg>
             </button>
             <div class="control-list section-content">
-              <label class="slider-control"><span>Exposure</span><output data-output="exposure"></output><input data-setting="exposure" type="range" min="-2" max="2" step=".01"></label>
-              <label class="slider-control"><span>Contrast</span><output data-output="contrast"></output><input data-setting="contrast" type="range" min="-.5" max=".8" step=".01"></label>
-              <label class="slider-control"><span>Black point</span><output data-output="blackPoint"></output><input data-setting="blackPoint" type="range" min="-.5" max=".5" step=".01"></label>
-              <label class="slider-control"><span>White point</span><output data-output="whitePoint"></output><input data-setting="whitePoint" type="range" min="-.5" max=".5" step=".01"></label>
-              <label class="slider-control"><span>Highlights</span><output data-output="highlights"></output><input data-setting="highlights" type="range" min="-1" max="1" step=".01"></label>
-              <label class="slider-control"><span>Shadows</span><output data-output="shadows"></output><input data-setting="shadows" type="range" min="-1" max="1" step=".01"></label>
+              <label class="slider-control bipolar"><span>Exposure</span><output data-output="exposure">0.00</output><input data-setting="exposure" type="range" min="-2" max="2" step=".01" value="0"></label>
+              <label class="slider-control bipolar"><span>Contrast</span><output data-output="contrast">+22</output><input data-setting="contrast" type="range" min="-.5" max=".8" step=".01" value=".22"></label>
+              <label class="slider-control bipolar"><span>Black point</span><output data-output="black_point">+8</output><input data-setting="black_point" type="range" min="-.5" max=".5" step=".01" value=".08"></label>
+              <label class="slider-control bipolar"><span>White point</span><output data-output="white_point">+4</output><input data-setting="white_point" type="range" min="-.5" max=".5" step=".01" value=".04"></label>
+              <label class="slider-control bipolar"><span>Highlights</span><output data-output="highlights">−14</output><input data-setting="highlights" type="range" min="-1" max="1" step=".01" value="-.14"></label>
+              <label class="slider-control bipolar"><span>Shadows</span><output data-output="shadows">+10</output><input data-setting="shadows" type="range" min="-1" max="1" step=".01" value=".10"></label>
             </div>
+          </section>
+
+          <section class="control-section levels-section" id="levelsSection">
+            <div class="section-heading levels-heading">
+              <div><h3>Levels</h3><p>Five-point tonal curve</p></div>
+              <div class="levels-toolbar">
+                <label><span class="visually-hidden">Levels channel</span><select id="levelsChannel" aria-label="Levels channel"><option value="rgb">RGB</option><option value="red">Red</option><option value="green">Green</option><option value="blue">Blue</option></select></label>
+                <button class="mini-control" id="levelsReset" type="button" title="Reset selected levels channel" aria-label="Reset selected levels channel"><svg viewBox="0 0 24 24"><path d="M5 8v5h5"/><path d="M6.4 16a7 7 0 1 0 .2-8.2L5 10"/></svg></button>
+                <button class="mini-control bypass-control" id="levelsBypass" type="button" title="Temporarily disable selected levels channel" aria-label="Toggle selected levels channel" aria-pressed="true"><svg viewBox="0 0 24 24"><path d="M2.5 12s3.5-5 9.5-5 9.5 5 9.5 5-3.5 5-9.5 5-9.5-5-9.5-5Z"/><circle cx="12" cy="12" r="2.5"/></svg></button>
+              </div>
+            </div>
+            <div class="levels-control" id="levelsControl" data-channel="rgb">
+              <canvas id="levelsHistogram" width="288" height="128" aria-hidden="true"></canvas>
+              <svg id="levelsEditor" viewBox="0 0 288 128" role="group" aria-label="RGB five-point levels curve">
+                <path class="levels-grid" d="M12 12V116M78 12V116M144 12V116M210 12V116M276 12V116M12 12H276M12 38H276M12 64H276M12 90H276M12 116H276"/>
+                <path class="levels-curve" id="levelsCurve"></path><g id="levelsMarkers"></g>
+              </svg>
+            </div>
+            <div class="levels-labels" aria-hidden="true"><span>Black</span><span>Shadows</span><span>Midtone</span><span>Highlights</span><span>White</span></div>
           </section>
 
           <section class="control-section">
             <div class="section-heading">
-              <span><strong>Auto Restore</strong><small>Scene-aware color recovery</small></span>
-              <label class="switch"><input id="autoToggle" type="checkbox" checked><i></i></label>
+              <div><h3>Auto Restore</h3><p>Scene-aware color recovery</p></div>
+              <label class="switch"><input type="checkbox" id="autoToggle" checked><span></span></label>
             </div>
             <div class="control-list">
-              <label class="slider-control"><span>Strength</span><output data-output="autoRestore"></output><input data-setting="autoRestore" type="range" min="0" max="1" step=".01"></label>
-              <label class="slider-control"><span>Overall mix</span><output data-output="master"></output><input data-setting="master" type="range" min="0" max="1" step=".01"></label>
+              <label class="slider-control"><span>Strength</span><output data-output="auto_restore">90</output><input data-setting="auto_restore" type="range" min="0" max="1" step=".01" value=".90"></label>
+              <label class="slider-control master-control"><span>Overall mix</span><output data-output="master">100</output><input data-setting="master" type="range" min="0" max="1" step=".01" value="1"></label>
             </div>
           </section>
 
           <section class="control-section">
             <div class="section-heading balance-heading">
-              <span><strong>White balance</strong><small>Recover absorbed wavelengths</small></span>
-              <button class="eyedropper-button" id="eyedropperButton" type="button" aria-pressed="false">⌁ Sample neutral</button>
+              <div><h3>White balance</h3><p>Recover absorbed wavelengths</p></div>
+              <button class="eyedropper-button" id="eyedropperButton" type="button" aria-pressed="false" title="Sample a neutral point from the photo"><svg viewBox="0 0 24 24"><path d="m19 3 2 2-8.5 8.5-3-3L18 2a1.4 1.4 0 0 1 2 0Z"/><path d="m8.5 11.5-5 5v4h4l5-5"/><path d="M4 20h4"/></svg>Sample neutral</button>
             </div>
-            <div class="sample-status" id="sampleStatus" hidden>
-              <i id="sampleSwatch"></i><span>Custom neutral point</span><button id="clearSampleButton" type="button">Clear</button>
-            </div>
+            <div class="sample-status" id="sampleStatus" hidden><span class="sample-swatch" id="sampleSwatch"></span><span>Custom neutral point active</span><button id="clearSampleButton" type="button">Clear</button></div>
             <div class="control-list">
-              <label class="slider-control"><span>Red recovery</span><output data-output="redRecovery"></output><input data-setting="redRecovery" type="range" min="0" max="1.5" step=".01"></label>
-              <label class="slider-control"><span>Blue balance</span><output data-output="blueBalance"></output><input data-setting="blueBalance" type="range" min="-1" max="1" step=".01"></label>
-              <label class="slider-control"><span>Fusion clarity</span><output data-output="dehaze"></output><input data-setting="dehaze" type="range" min="0" max="1" step=".01"></label>
-              <label class="slider-control"><span>Temperature</span><output data-output="temperature"></output><input data-setting="temperature" type="range" min="-1" max="1" step=".01"></label>
-              <label class="slider-control"><span>Tint</span><output data-output="tint"></output><input data-setting="tint" type="range" min="-1" max="1" step=".01"></label>
+              <label class="slider-control"><span>Red recovery</span><output data-output="red_recovery">95</output><input data-setting="red_recovery" type="range" min="0" max="1.5" step=".01" value=".95"></label>
+              <label class="slider-control bipolar"><span>Green correction</span><output data-output="green_correction">0</output><input data-setting="green_correction" type="range" min="-1" max="1" step=".01" value="0"></label>
+              <label class="slider-control bipolar"><span>Blue balance</span><output data-output="blue_balance">+24</output><input data-setting="blue_balance" type="range" min="-1" max="1" step=".01" value=".24"></label>
+              <label class="slider-control"><span>Fusion clarity</span><output data-output="dehaze">38</output><input data-setting="dehaze" type="range" min="0" max="1" step=".01" value=".38"></label>
+              <label class="slider-control bipolar"><span>Temperature</span><output data-output="temperature">+4</output><input data-setting="temperature" type="range" min="-1" max="1" step=".01" value=".04"></label>
+              <label class="slider-control bipolar"><span>Tint</span><output data-output="tint">+1</output><input data-setting="tint" type="range" min="-1" max="1" step=".01" value=".01"></label>
             </div>
           </section>
 
           <section class="control-section">
             <button class="section-toggle" type="button" aria-expanded="true">
-              <span><strong>Presence</strong><small>Color and fine detail</small></span><b>⌄</b>
+              <span><h3>Presence</h3><p>Color and fine detail</p></span>
+              <svg viewBox="0 0 24 24"><path d="m8 10 4 4 4-4"/></svg>
             </button>
             <div class="control-list section-content">
-              <label class="slider-control"><span>Saturation</span><output data-output="saturation"></output><input data-setting="saturation" type="range" min="-1" max="1" step=".01"></label>
-              <label class="slider-control"><span>Vibrance</span><output data-output="vibrance"></output><input data-setting="vibrance" type="range" min="-1" max="1" step=".01"></label>
-              <label class="slider-control"><span>Clarity</span><output data-output="clarity"></output><input data-setting="clarity" type="range" min="-1" max="1" step=".01"></label>
-              <label class="slider-control"><span>Denoise</span><output data-output="denoise"></output><input data-setting="denoise" type="range" min="0" max="1" step=".01"></label>
+              <label class="slider-control bipolar"><span>Saturation</span><output data-output="saturation">+5</output><input data-setting="saturation" type="range" min="-1" max="1" step=".01" value=".05"></label>
+              <label class="slider-control bipolar"><span>Vibrance</span><output data-output="vibrance">+22</output><input data-setting="vibrance" type="range" min="-1" max="1" step=".01" value=".22"></label>
+              <label class="slider-control bipolar"><span>Clarity</span><output data-output="clarity">+16</output><input data-setting="clarity" type="range" min="-1" max="1" step=".01" value=".16"></label>
+              <label class="slider-control"><span>Denoise</span><output data-output="denoise">3</output><input data-setting="denoise" type="range" min="0" max="1" step=".01" value=".03"></label>
             </div>
           </section>
         </div>
 
-        <details class="capability-card">
-          <summary><span>Device capabilities</span><small id="capabilitySummary">Checking…</small></summary>
-          <div class="capability-grid" id="capabilityGrid"></div>
-        </details>
-
-        <div class="export-card">
-          <div><strong>Local export</strong><small>Full resolution is processed on this device. The original is never modified.</small></div>
-          <div class="export-actions">
-            <button class="secondary-button" id="exportPng" type="button" disabled>PNG</button>
-            <button class="primary-button" id="exportJpegSide" type="button" disabled>Export JPEG</button>
-          </div>
-        </div>
+        <footer class="inspector-footer">
+          <button class="secondary-button" id="newPhotoButton" type="button"><svg viewBox="0 0 24 24"><path d="M12 16V4m0 0L8 8m4-4 4 4"/><path d="M5 20h14"/></svg>Open another photo</button>
+        </footer>
       </aside>
     </main>
   </div>
+
+  <input id="fileInput" type="file" accept=".jpg,.jpeg,.png,image/jpeg,image/png" hidden>
+
+  <dialog class="export-dialog" id="exportDialog">
+    <form method="dialog" id="exportForm">
+      <div class="dialog-header">
+        <div><p class="eyebrow">Finish</p><h2>Export your restoration</h2></div>
+        <button class="icon-button close-dialog" type="button" aria-label="Close export dialog"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
+      </div>
+      <div class="dialog-body">
+        <fieldset>
+          <legend>Format</legend>
+          <div class="format-options">
+            <label class="unavailable-option"><input type="radio" name="format" value="heic" disabled><span><strong>HEIC</strong><small>Coming later</small></span></label>
+            <label><input type="radio" name="format" value="jpeg" checked><span><strong>JPEG</strong><small>Small, universal</small></span></label>
+            <label><input type="radio" name="format" value="png"><span><strong>PNG</strong><small>Lossless, 8-bit</small></span></label>
+            <label class="unavailable-option"><input type="radio" name="format" value="tiff" disabled><span><strong>TIFF</strong><small>Coming later</small></span></label>
+          </div>
+        </fieldset>
+        <label class="quality-row" id="qualityRow"><span><strong>Quality</strong><output id="qualityOutput">95%</output></span><input id="qualityInput" type="range" min="70" max="100" value="95"></label>
+        <div class="export-note"><svg viewBox="0 0 24 24"><path d="M12 3v18M3 12h18"/><circle cx="12" cy="12" r="9"/></svg><span>Full resolution is processed on this device. The original file is never changed.</span></div>
+        <div class="color-export-note warning">ICC/P3 preservation, HDR gain maps, 10-bit output, HEIC, and TIFF are visibly disabled until end-to-end color validation is complete.</div>
+      </div>
+      <div class="dialog-actions">
+        <button class="secondary-button cancel-dialog" type="button">Cancel</button>
+        <button class="primary-button" id="downloadButton" value="default"><span class="button-label">Export photo</span><span class="button-loading"><i class="spinner"></i>Processing full resolution</span></button>
+      </div>
+    </form>
+  </dialog>
 
   <div class="toast-region" id="toastRegion" aria-live="polite"></div>
   <script type="module" src="/src/main.js"></script>

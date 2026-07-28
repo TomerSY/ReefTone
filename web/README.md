@@ -11,10 +11,14 @@ Available now:
 - local JPEG and PNG opening by file picker or drag-and-drop
 - reliable Canvas 2D preview with local underwater scene analysis
 - Natural, Vivid, Deep water, Gentle, and Dramatic looks
-- the full Python settings contract: Light, Auto Restore, White Balance,
-  Presence, and Overall Mix
+- the canonical desktop UI tokens, typography, toolbar, inspector order, labels,
+  control shapes, disabled states, and responsive breakpoints
+- the full Python settings contract: Light, four-channel five-point Levels,
+  Auto Restore, White Balance including Green correction, Presence, and Overall Mix
 - per-setting reset and bypass, undo/redo, copied edits, and a neutral eyedropper
-- swipe or whole-image comparison plus magnifier zoom and drag-to-pan
+- channel-group Levels reset/bypass, monotonic pointer and keyboard markers, and
+  the same RGB → Red → Green → Blue float curve order in preview and export
+- swipe or whole-image comparison plus 25-point focal magnifier zoom and drag-to-pan
 - full-resolution JPEG or PNG export in a Web Worker
 - installable PWA metadata and a small offline application shell
 - browser capability reporting for WebGPU, Display P3, HDR displays,
@@ -27,9 +31,14 @@ Not available in this alpha:
 - Display P3 or HDR working/output spaces
 - exact parity with the Python correction pipeline
 - video processing
+- TIFF or 10-bit export
+- the desktop local-folder library and other service-dependent actions
 
-The app labels these limitations in the interface. An unsupported image is never
-silently converted or presented as profile-preserving.
+The app keeps these controls in their desktop locations but visibly disables them
+with concise capability text. An unsupported image is never silently converted or
+presented as profile-preserving. JPEG and PNG remain the only enabled inputs and
+outputs. Full-resolution export additionally requires worker `OffscreenCanvas`
+and is reported as unavailable when the browser does not provide it.
 
 ## Privacy model
 
@@ -60,7 +69,9 @@ Vite writes the deployable static application to `web/dist/`.
 ## Architecture direction
 
 The JavaScript correction now shares the Python editor's defaults, ranges,
-presets, scene-analysis concepts, and processing order. Expensive OpenCV
+presets, Green correction, Levels contract, scene-analysis concepts, and processing
+order. The web stylesheet starts from the checked-in desktop stylesheet, with a
+small web-only layer for the Canvas renderer and unavailable capabilities. Expensive OpenCV
 operations—especially CLAHE and multiscale pyramid fusion—are represented by a
 lighter browser approximation, so this is still not a claim of pixel parity.
 The next technical milestone is to move a shared, color-managed image core into
