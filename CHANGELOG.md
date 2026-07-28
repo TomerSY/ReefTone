@@ -45,6 +45,9 @@ small refinements.
   explicit accessible opt-in
 - Loaded photos now remain sticky beneath the web app header at mobile widths,
   keeping the preview visible while adjustment controls scroll
+- Mobile web editing now removes the floating Color information card and
+  low-priority preview metadata, keeps Before/After visible beside the looks,
+  reduces header space, and gives the photo a substantially larger sticky area
 
 ### Planned
 

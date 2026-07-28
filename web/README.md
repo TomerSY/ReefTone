@@ -25,6 +25,9 @@ Available now:
   25-point focal magnifier zoom and drag-to-pan
 - a loaded photo stays visible beneath the header while its controls scroll on
   mobile devices; desktop layout and scrolling are unchanged
+- mobile editing prioritizes the photo with a shorter header, a larger sticky
+  preview, no floating color-information card or preview metadata, and a visible
+  whole-image Before/After button beside the horizontally scrollable looks
 - full-resolution JPEG or PNG export in a Web Worker
 - installable PWA metadata and a small offline application shell
 - browser capability reporting for WebGPU, Display P3, HDR displays,

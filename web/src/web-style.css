@@ -104,6 +104,14 @@ html, body { min-width: 320px; }
 .settings-clip.apply-only { grid-template-columns: minmax(0, 1fr) auto; }
 
 @media (max-width: 1035px) {
+  .app {
+    --web-mobile-header-height: 72px;
+    grid-template-rows: var(--web-mobile-header-height) auto;
+  }
+  .topbar {
+    min-height: var(--web-mobile-header-height);
+    height: var(--web-mobile-header-height);
+  }
   .workspace,
   .canvas-area,
   .inspector {
@@ -115,15 +123,48 @@ html, body { min-width: 320px; }
   .inspector { container-type: inline-size; }
   .app.has-photo .canvas-area {
     position: sticky;
-    top: calc(58px * var(--ui-scale));
+    top: var(--web-mobile-header-height);
     z-index: 8;
-    height: clamp(280px, 42vh, 360px);
-    height: clamp(280px, 42svh, 360px);
-    min-height: clamp(280px, 42vh, 360px);
-    min-height: clamp(280px, 42svh, 360px);
-    max-height: 360px;
+    height: clamp(320px, 55vh, 460px);
+    height: clamp(320px, 55svh, 460px);
+    min-height: clamp(320px, 55vh, 460px);
+    min-height: clamp(320px, 55svh, 460px);
+    max-height: 460px;
     box-shadow: 0 calc(9px * var(--ui-scale)) calc(24px * var(--ui-scale)) rgba(0, 0, 0, .32);
   }
+  .workspace { min-height: calc(100vh - var(--web-mobile-header-height)); }
+  .canvas-toolbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+    gap: calc(6px * var(--ui-scale));
+    overflow: visible;
+  }
+  .toolbar-left {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    overflow: hidden;
+  }
+  .toolbar-left .presets {
+    display: flex;
+    max-width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .toolbar-left .presets button { padding-inline: calc(5px * var(--ui-scale)); }
+  .toolbar-left .presets::-webkit-scrollbar { display: none; }
+  .canvas-color-info { display: none; }
+  .toolbar-right { display: flex; }
+  .toolbar-right > :not(#beforeAfterButton) { display: none; }
+  #beforeAfterButton {
+    display: inline-flex;
+    flex: 0 0 auto;
+  }
+  .editor-stage {
+    padding: calc(48px * var(--ui-scale)) calc(12px * var(--ui-scale)) calc(8px * var(--ui-scale));
+  }
+  .image-meta { display: none; }
   .inspector-header,
   .controls-scroll,
   .inspector-footer {
@@ -164,4 +205,15 @@ html, body { min-width: 320px; }
   .inspector-actions { flex-wrap: wrap; }
   .image-frame > img { max-height: 48vh; }
   .capability-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 359px) {
+  .brand > span:last-child { display: none; }
+}
+
+@media (max-width: 1035px) and (orientation: landscape) {
+  .app.has-photo .canvas-area {
+    height: clamp(240px, calc(100svh - var(--web-mobile-header-height) - 72px), 360px);
+    min-height: clamp(240px, calc(100svh - var(--web-mobile-header-height) - 72px), 360px);
+  }
 }

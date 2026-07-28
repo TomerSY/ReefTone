@@ -44,6 +44,21 @@ test("a loaded photo gets a mobile-only sticky preview below the app header", as
 
   assert.match(main, /\$\("#app"\)\.classList\.add\("has-photo"\)/);
   assert.match(mobileRules, /\.app\.has-photo \.canvas-area\s*\{[^}]*position:\s*sticky/s);
-  assert.match(mobileRules, /top:\s*calc\(58px \* var\(--ui-scale\)\)/);
+  assert.match(mobileRules, /top:\s*var\(--web-mobile-header-height\)/);
   assert.doesNotMatch(webCss.slice(0, webCss.indexOf("@media (max-width: 1035px)")), /position:\s*sticky/);
+});
+
+test("mobile prioritizes the photo and keeps Before/After beside the looks", async () => {
+  const webCss = await readFile(new URL("src/web-style.css", root), "utf8");
+  const mobileRules = webCss.slice(
+    webCss.indexOf("@media (max-width: 1035px)"),
+    webCss.indexOf("@media (max-width: 359px)"),
+  );
+
+  assert.match(mobileRules, /--web-mobile-header-height:\s*72px/);
+  assert.match(mobileRules, /\.canvas-color-info\s*\{\s*display:\s*none/);
+  assert.match(mobileRules, /\.toolbar-right\s*\{\s*display:\s*flex/);
+  assert.match(mobileRules, /#beforeAfterButton\s*\{[^}]*display:\s*inline-flex/s);
+  assert.match(mobileRules, /\.image-meta\s*\{\s*display:\s*none/);
+  assert.match(mobileRules, /height:\s*clamp\(320px,\s*55svh,\s*460px\)/);
 });
