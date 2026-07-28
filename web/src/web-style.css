@@ -1,0 +1,156 @@
+/* Browser-only renderer and capability states. All shared visual rules and the
+   canonical 1.5× scale come directly from the desktop stylesheet. */
+html, body { min-width: 320px; }
+
+.image-shell {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  overflow: visible;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.image-frame {
+  position: relative;
+  display: grid;
+  place-items: center;
+  max-width: 100%;
+  max-height: 100%;
+  overflow: hidden;
+  border-radius: calc(8px * var(--ui-scale));
+  background: #040807;
+  box-shadow: 0 26px 80px rgba(0,0,0,.52), 0 0 0 1px rgba(255,255,255,.09);
+  transform-origin: center;
+  transition: transform .18s ease-out;
+  touch-action: none;
+  will-change: transform;
+}
+.image-shell.can-pan .image-frame { cursor: grab; }
+.image-shell.can-pan:active .image-frame { cursor: grabbing; transition: none; }
+.image-shell.zoom-tool .image-frame { cursor: zoom-in; }
+.image-shell.sampling .image-frame { cursor: crosshair; box-shadow: 0 26px 80px rgba(0,0,0,.52), 0 0 0 2px var(--accent); }
+.image-frame > img {
+  display: block;
+  max-width: 100%;
+  max-height: calc(100vh - (182px * var(--ui-scale)));
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  user-select: none;
+}
+.corrected-layer canvas {
+  display: block;
+  width: var(--image-width, auto);
+  height: 100%;
+  max-width: none;
+  object-fit: fill;
+}
+.processing-overlay:not([hidden]) { opacity: 1; }
+.image-meta { display: flex; gap: calc(14px * var(--ui-scale)); }
+
+.capability-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: calc(4px * var(--ui-scale));
+  margin-top: calc(8px * var(--ui-scale));
+}
+.capability-grid > span {
+  display: flex;
+  align-items: center;
+  gap: calc(5px * var(--ui-scale));
+  padding: calc(5px * var(--ui-scale)) calc(6px * var(--ui-scale));
+  border-radius: calc(5px * var(--ui-scale));
+  color: var(--muted);
+  background: rgba(255,255,255,.025);
+  font-size: calc(7px * var(--ui-scale));
+}
+.capability-grid > span i { width: calc(5px * var(--ui-scale)); height: calc(5px * var(--ui-scale)); border-radius: 50%; background: var(--muted-2); }
+.capability-grid > span.supported i { background: var(--accent); }
+.capability-grid > span.missing { opacity: .58; }
+.capability-grid small { margin-left: auto; color: var(--muted-2); font-size: calc(7px * var(--ui-scale)); }
+
+.available-format { color: var(--accent); }
+.coming-format { opacity: .62; }
+.coming-format b {
+  margin-left: calc(4px * var(--ui-scale));
+  padding: calc(2px * var(--ui-scale)) calc(4px * var(--ui-scale));
+  border-radius: calc(4px * var(--ui-scale));
+  color: var(--muted);
+  background: rgba(255,255,255,.05);
+  font-size: calc(7px * var(--ui-scale));
+}
+.unavailable-feature { opacity: .52; }
+.unavailable-feature .library-item { width: 100%; cursor: not-allowed; }
+.unavailable-option { cursor: not-allowed !important; }
+.unavailable-option span { opacity: .42; filter: saturate(.3); }
+.unavailable-option small { color: #c2ad88; }
+.levels-control.disabled { opacity: .35; pointer-events: none; }
+.color-card-content #sourceDetails p { margin: calc(8px * var(--ui-scale)) 0 0; }
+
+#zoomToolButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: calc(4px * var(--ui-scale));
+  min-width: calc(62px * var(--ui-scale));
+  color: var(--accent);
+}
+#zoomToolButton svg { width: calc(13px * var(--ui-scale)); }
+#zoomToolButton.active { color: var(--accent-strong); background: rgba(38, 91, 78, .7); box-shadow: inset 0 0 0 1px rgba(108,224,196,.16); }
+.settings-clip.apply-only { grid-template-columns: minmax(0, 1fr) auto; }
+
+@media (max-width: 1035px) {
+  .workspace,
+  .canvas-area,
+  .inspector {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+  .canvas-area,
+  .inspector { container-type: inline-size; }
+  .inspector-header,
+  .controls-scroll,
+  .inspector-footer {
+    width: 100cqi;
+    min-width: 0;
+    max-width: 100cqi;
+  }
+  .analysis-card,
+  .settings-shelf {
+    width: calc(100cqi - (32px * var(--ui-scale)));
+    max-width: calc(100cqi - (32px * var(--ui-scale)));
+  }
+  .controls-scroll { overflow-x: hidden; }
+  .control-section,
+  .control-list,
+  .slider-control,
+  .levels-control,
+  .sharpening-tool {
+    min-width: 0;
+    max-width: 100%;
+  }
+  .editor-stage,
+  .image-shell {
+    width: 100cqi;
+    min-width: 0;
+    max-width: 100cqi;
+  }
+  .inspector-header,
+  .balance-heading,
+  .sharpening-heading {
+    flex-wrap: wrap;
+  }
+  .inspector-header > div:first-child,
+  .balance-heading > div:first-child,
+  .sharpening-heading > span:first-child {
+    min-width: 0;
+  }
+  .inspector-actions { flex-wrap: wrap; }
+  .image-frame > img { max-height: 48vh; }
+  .capability-grid { grid-template-columns: 1fr; }
+}

@@ -14,7 +14,8 @@
 
 - static PWA with no image upload endpoint
 - local JPEG/PNG decode, reliable Canvas preview, and worker-based export
-- desktop-matched web interface plus Green balance and five-point Levels
+- desktop-matched 1.5× web interface plus Green balance, five-point Levels, and
+  output-neutral thresholded Sharpening
 - responsive desktop and mobile editing workspace
 - browser capability detection and explicit format limitations
 - shared settings contract and cross-runtime reference fixtures

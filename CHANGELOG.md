@@ -24,6 +24,8 @@ small refinements.
   Levels graph, disabled states, and responsive breakpoints
 - Browser Green balance and five-point RGB/Red/Green/Blue Levels in preview
   and full-resolution worker export
+- Browser thresholded unsharp-mask Sharpening with Amount, Radius, Threshold,
+  reset/bypass, undo/redo, copied edits, and worker-export parity
 
 ### Fixed
 
@@ -35,6 +37,12 @@ small refinements.
 - Web magnifier focal zoom now follows the desktop 25-percentage-point step
 - Unsupported web formats and color workflows remain visible in their desktop
   locations but are explicitly disabled instead of appearing functional
+- Web balance labels now consistently read Red balance, Green balance, and Blue
+  balance while preserving their serialized keys
+- Web typography, icons, control geometry, stacking, and responsive breakpoints
+  now consume the canonical desktop 1.5× stylesheet directly
+- Whole-image Before/After is now the default web comparison mode; Swipe is an
+  explicit accessible opt-in
 
 ### Planned
 

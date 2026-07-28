@@ -12,13 +12,17 @@ Available now:
 - reliable Canvas 2D preview with local underwater scene analysis
 - Natural, Vivid, Deep water, Gentle, and Dramatic looks
 - the canonical desktop UI tokens, typography, toolbar, inspector order, labels,
-  control shapes, disabled states, and responsive breakpoints
+  control shapes, disabled states, exact 1.5× text/icon scale, and responsive
+  breakpoints, imported directly from the desktop stylesheet
 - the full Python settings contract: Light, four-channel five-point Levels,
   Auto Restore, White Balance including Green correction, Presence, and Overall Mix
 - per-setting reset and bypass, undo/redo, copied edits, and a neutral eyedropper
 - channel-group Levels reset/bypass, monotonic pointer and keyboard markers, and
   the same RGB → Red → Green → Blue float curve order in preview and export
-- swipe or whole-image comparison plus 25-point focal magnifier zoom and drag-to-pan
+- output-neutral thresholded unsharp-mask Sharpening with Amount, Radius, and
+  Threshold in preview and full-resolution worker export
+- whole-image Before/After by default, explicit opt-in Swipe comparison, plus
+  25-point focal magnifier zoom and drag-to-pan
 - full-resolution JPEG or PNG export in a Web Worker
 - installable PWA metadata and a small offline application shell
 - browser capability reporting for WebGPU, Display P3, HDR displays,
@@ -69,9 +73,10 @@ Vite writes the deployable static application to `web/dist/`.
 ## Architecture direction
 
 The JavaScript correction now shares the Python editor's defaults, ranges,
-presets, Green correction, Levels contract, scene-analysis concepts, and processing
-order. The web stylesheet starts from the checked-in desktop stylesheet, with a
-small web-only layer for the Canvas renderer and unavailable capabilities. Expensive OpenCV
+presets, balance naming, Green correction, Levels and Sharpening contracts,
+scene-analysis concepts, and processing order. The web build imports the checked-in
+desktop stylesheet directly, with a small web-only layer for the Canvas renderer
+and unavailable capabilities. Expensive OpenCV
 operations—especially CLAHE and multiscale pyramid fusion—are represented by a
 lighter browser approximation, so this is still not a claim of pixel parity.
 The next technical milestone is to move a shared, color-managed image core into

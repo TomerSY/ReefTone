@@ -1,4 +1,5 @@
-import "./style.css";
+import "../../src/reeftone/static/styles.css";
+import "./web-style.css";
 import {
   DEFAULT_SETTINGS,
   LEVEL_CHANNELS,
@@ -7,13 +8,23 @@ import {
   PRESETS,
   analyzeImageData,
   monotoneCurve,
+  normalizeSettings,
   processImageData,
 } from "./color-math.js";
 
 const $ = selector => document.querySelector(selector);
 const $$ = selector => [...document.querySelectorAll(selector)];
-const VERSION = "0.5.0-alpha.3";
+const VERSION = "0.6.0-alpha.4";
 const LEVEL_VIEW = Object.freeze({width: 288, height: 128, padding: 12});
+const CONTROL_DEFAULTS = Object.freeze({
+  sharpen_amount: 0,
+  sharpen_radius: 1,
+  sharpen_threshold: 0.02,
+});
+const CONTROL_BYPASS_VALUES = Object.freeze({
+  sharpen_radius: 1,
+  sharpen_threshold: 0,
+});
 
 const state = {
   file: null,
@@ -27,8 +38,9 @@ const state = {
   future: [],
   settingsClips: [],
   renderQueued: false,
-  swipeEnabled: true,
+  swipeEnabled: false,
   fullBefore: false,
+  comparisonHeld: false,
   compare: 50,
   sampling: false,
   zoomTool: false,
@@ -54,6 +66,9 @@ function displayValue(name, value) {
   if (name === "exposure") {
     return value === 0 ? "0.00" : `${value > 0 ? "+" : ""}${value.toFixed(2)}`;
   }
+  if (name === "sharpen_amount") return `${Math.round(value * 100)}%`;
+  if (name === "sharpen_radius") return `${value.toFixed(1)} px`;
+  if (name === "sharpen_threshold") return `${Math.round(value * 100)}%`;
   if (["master", "auto_restore", "red_recovery", "dehaze", "denoise"].includes(name)) {
     return String(Math.round(value * 100));
   }
@@ -68,7 +83,7 @@ function snapshot() {
 }
 
 function restoreSnapshot(saved) {
-  state.settings = {...saved.settings};
+  state.settings = normalizeSettings(saved.settings);
   state.bypassed = new Set(saved.bypassed || []);
   syncControls();
   selectMatchingPreset();
@@ -104,8 +119,9 @@ function updateHistoryButtons() {
 function effectiveSettings() {
   const settings = {...state.settings};
   state.bypassed.forEach(name => {
-    if (name in settings) settings[name] = 0;
+    if (name in settings) settings[name] = CONTROL_BYPASS_VALUES[name] ?? 0;
   });
+  if (state.bypassed.has("sharpening")) settings.sharpen_amount = 0;
   LEVEL_CHANNELS.forEach(channel => {
     if (!state.bypassed.has(`levels_${channel}`)) return;
     LEVEL_POINTS.forEach((point, index) => {
@@ -132,24 +148,30 @@ function syncControls() {
     const bypassed = state.bypassed.has(name);
     control?.classList.toggle("bypassed", bypassed);
     const button = control?.querySelector(".bypass-control");
-    button?.setAttribute("aria-pressed", String(!bypassed));
+    if (button) {
+      const readable = input.dataset.label || name.replaceAll("_", " ");
+      button.setAttribute("aria-pressed", String(!bypassed));
+      button.title = bypassed ? `Enable ${readable}` : `Temporarily disable ${readable}`;
+    }
   });
   $("#autoToggle").checked = state.settings.auto_restore > 0 && !state.bypassed.has("auto_restore");
   renderLevelsControl();
+  syncSharpeningControl();
 }
 
 function addPerControlActions() {
   $$("[data-setting]").forEach(input => {
     const label = input.closest(".slider-control");
     const name = input.dataset.setting;
-    const readable = label.querySelector(":scope > span").textContent;
+    const readable = input.dataset.label || label.querySelector(":scope > span").textContent;
+    const defaultValue = CONTROL_DEFAULTS[name] ?? 0;
     const actions = document.createElement("span");
     actions.className = "control-actions";
     actions.innerHTML = `
-      <button class="mini-control reset-control" type="button" title="Reset ${readable} to zero" aria-label="Reset ${readable} to zero">
+      <button class="mini-control reset-control" type="button" title="Reset ${readable} to default" aria-label="Reset ${readable} to default">
         <svg viewBox="0 0 24 24"><path d="M5 8v5h5"/><path d="M6.4 16a7 7 0 1 0 .2-8.2L5 10"/></svg>
       </button>
-      <button class="mini-control bypass-control" type="button" title="Temporarily bypass ${readable}" aria-label="Toggle ${readable}" aria-pressed="true">
+      <button class="mini-control bypass-control" type="button" title="Temporarily disable ${readable}" aria-label="Toggle ${readable}" aria-pressed="true">
         <svg viewBox="0 0 24 24"><path d="M2.5 12s3.5-5 9.5-5 9.5 5 9.5 5-3.5 5-9.5 5-9.5-5-9.5-5Z"/><circle cx="12" cy="12" r="2.5"/></svg>
       </button>
     `;
@@ -157,8 +179,9 @@ function addPerControlActions() {
     actions.querySelector(".reset-control").addEventListener("click", event => {
       event.preventDefault();
       const previous = snapshot();
-      state.settings[name] = 0;
+      state.settings[name] = defaultValue;
       state.bypassed.delete(name);
+      if (name.startsWith("sharpen_")) state.bypassed.delete("sharpening");
       pushHistory(previous);
       clearPresetSelection();
       syncControls();
@@ -177,8 +200,40 @@ function addPerControlActions() {
   });
 }
 
+function syncSharpeningControl() {
+  const bypassed = state.bypassed.has("sharpening");
+  $("#sharpeningTool")?.classList.toggle("bypassed", bypassed);
+  const button = $("#sharpenBypass");
+  if (!button) return;
+  button.setAttribute("aria-pressed", String(!bypassed));
+  button.title = bypassed ? "Enable sharpening" : "Temporarily disable sharpening";
+}
+
+function resetSharpening() {
+  const previous = snapshot();
+  Object.entries(CONTROL_DEFAULTS).forEach(([name, value]) => {
+    state.settings[name] = value;
+    state.bypassed.delete(name);
+  });
+  state.bypassed.delete("sharpening");
+  pushHistory(previous);
+  syncControls();
+  clearPresetSelection();
+  schedulePreview();
+}
+
+function toggleSharpeningBypass() {
+  const previous = snapshot();
+  if (state.bypassed.has("sharpening")) state.bypassed.delete("sharpening");
+  else state.bypassed.add("sharpening");
+  pushHistory(previous);
+  syncSharpeningControl();
+  clearPresetSelection();
+  schedulePreview();
+}
+
 function setControlsEnabled(enabled) {
-  $$("[data-setting], .slider-control .mini-control, #eyedropperButton, #levelsChannel, #levelsReset, #levelsBypass, #resetButton, #copySettingsButton").forEach(control => {
+  $$("[data-setting], .slider-control .mini-control, #eyedropperButton, #levelsChannel, #levelsReset, #levelsBypass, #sharpenReset, #sharpenBypass, #resetButton, #copySettingsButton").forEach(control => {
     control.disabled = !enabled;
   });
   $("#exportButton").disabled = !enabled || typeof OffscreenCanvas === "undefined";
@@ -454,8 +509,7 @@ async function openFile(file) {
     syncControls();
     selectMatchingPreset();
     updateHistoryButtons();
-    setSwipeEnabled(true);
-    setCompare(50);
+    setSwipeEnabled(false);
     renderViewport();
     schedulePreview();
     requestAnimationFrame(syncComparisonGeometry);
@@ -471,10 +525,11 @@ function syncComparisonGeometry() {
   if (!state.file) return;
   const canvas = $("#previewCanvas");
   const original = $("#originalImage");
-  const bounds = original.getBoundingClientRect();
-  canvas.style.width = `${bounds.width / state.zoomScale}px`;
-  canvas.style.height = `${bounds.height / state.zoomScale}px`;
-  $("#correctedLayer").style.setProperty("--image-width", `${bounds.width / state.zoomScale}px`);
+  const width = original.clientWidth;
+  const height = original.clientHeight;
+  canvas.style.width = `${width}px`;
+  canvas.style.height = `${height}px`;
+  $("#correctedLayer").style.setProperty("--image-width", `${width}px`);
 }
 
 function setCompare(value) {
@@ -493,8 +548,14 @@ function setSwipeEnabled(enabled) {
   $("#swipeToggle").setAttribute("aria-pressed", String(enabled));
   $("#beforeAfterButton").disabled = enabled || !state.file;
   $("#beforeAfterButton").classList.remove("active");
+  $("#beforeAfterButton").setAttribute("aria-pressed", "false");
   $("#beforeAfterButton").textContent = "Before";
-  if (enabled) setCompare(state.compare);
+  $$(".before-label, .after-label").forEach(label => {
+    label.hidden = !enabled;
+  });
+  if (enabled) {
+    setCompare(state.compare);
+  }
   else {
     $("#correctedLayer").style.width = "100%";
     $("#compareLine").hidden = true;
@@ -536,6 +597,7 @@ function selectMatchingPreset() {
 
 function resetSettings() {
   applyPreset("natural");
+  setSwipeEnabled(false);
   toast("Adjustments reset to Natural");
 }
 
@@ -570,7 +632,7 @@ function renderSettingsShelf() {
     const clip = state.settingsClips.find(item => item.id === button.dataset.clip);
     if (!clip) return;
     pushHistory(snapshot());
-    state.settings = {...clip.settings};
+    state.settings = normalizeSettings(clip.settings);
     state.bypassed = new Set(clip.bypassed);
     syncControls();
     selectMatchingPreset();
@@ -799,6 +861,10 @@ function bindEvents() {
       const name = input.dataset.setting;
       state.settings[name] = Number(input.value);
       state.bypassed.delete(name);
+      if (name.startsWith("sharpen_")) {
+        state.bypassed.delete("sharpening");
+        syncSharpeningControl();
+      }
       $(`[data-output="${name}"]`).value = displayValue(name, state.settings[name]);
       updateRangeStyle(input);
       input.closest(".slider-control")?.classList.remove("bypassed");
@@ -841,6 +907,8 @@ function bindEvents() {
   });
   $("#levelsReset").addEventListener("click", resetLevelsChannel);
   $("#levelsBypass").addEventListener("click", toggleLevelsBypass);
+  $("#sharpenReset").addEventListener("click", resetSharpening);
+  $("#sharpenBypass").addEventListener("click", toggleSharpeningBypass);
 
   let levelsDrag = null;
   $("#levelsEditor").addEventListener("pointerdown", event => {
@@ -957,13 +1025,26 @@ function bindEvents() {
       if (event.shiftKey) redo();
       else undo();
     }
-    if (event.key === "\\" && state.file && !state.swipeEnabled) {
+    if (event.key === "\\" && state.file && !state.comparisonHeld) {
+      state.comparisonHeld = true;
       $("#correctedLayer").style.width = "0%";
+      $("#compareLine").hidden = true;
+      $$(".before-label, .after-label").forEach(label => {
+        label.hidden = true;
+      });
     }
   });
   window.addEventListener("keyup", event => {
-    if (event.key === "\\" && state.file && !state.swipeEnabled) {
-      $("#correctedLayer").style.width = state.fullBefore ? "0%" : "100%";
+    if (event.key === "\\" && state.file && state.comparisonHeld) {
+      state.comparisonHeld = false;
+      if (state.swipeEnabled) {
+        setCompare(state.compare);
+        $$(".before-label, .after-label").forEach(label => {
+          label.hidden = false;
+        });
+      } else {
+        $("#correctedLayer").style.width = state.fullBefore ? "0%" : "100%";
+      }
     }
   });
 }

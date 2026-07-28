@@ -27,12 +27,19 @@ export const DEFAULT_SETTINGS = Object.freeze({
   vibrance: 0.22,
   clarity: 0.16,
   denoise: 0.03,
+  sharpen_amount: 0,
+  sharpen_radius: 1,
+  sharpen_threshold: 0.02,
   sample_red: 0,
   sample_green: 0,
   sample_blue: 0,
   sample_strength: 0,
   ...levelSettings,
 });
+
+export function normalizeSettings(settings = {}) {
+  return {...DEFAULT_SETTINGS, ...settings};
+}
 
 const preset = overrides => Object.freeze({...DEFAULT_SETTINGS, ...overrides});
 
@@ -209,7 +216,15 @@ function sampleGains(settings) {
   ));
 }
 
-export function adjustPixel(red, green, blue, settings, analysis = null, preparedLevels = null) {
+export function adjustPixel(
+  red,
+  green,
+  blue,
+  settings,
+  analysis = null,
+  preparedLevels = null,
+  applyMaster = true,
+) {
   const original = [red, green, blue];
   const fallbackRedLoss = clamp((green - red) / Math.max(green, 0.08));
   const fallbackCyan = clamp(((green + blue) * 0.5 - red) / Math.max(green + blue, 0.12));
@@ -302,6 +317,7 @@ export function adjustPixel(red, green, blue, settings, analysis = null, prepare
   green = green * (1 - denoiseBlend) + luma * denoiseBlend;
   blue = blue * (1 - denoiseBlend) + luma * denoiseBlend;
 
+  if (!applyMaster) return [clamp(red), clamp(green), clamp(blue)];
   const master = settings.master;
   return [
     clamp(original[0] * (1 - master) + red * master),
@@ -310,27 +326,214 @@ export function adjustPixel(red, green, blue, settings, analysis = null, prepare
   ];
 }
 
+function adjustPixelBeforeMaster(red, green, blue, settings, analysis, preparedLevels) {
+  return adjustPixel(
+    red,
+    green,
+    blue,
+    settings,
+    analysis,
+    preparedLevels,
+    false,
+  );
+}
+
+function reflect101(index, size) {
+  if (size <= 1) return 0;
+  let reflected = index;
+  while (reflected < 0 || reflected >= size) {
+    reflected = reflected < 0 ? -reflected : size * 2 - reflected - 2;
+  }
+  return reflected;
+}
+
+function gaussianKernel(radius) {
+  const sigma = Math.max(0.3, Number(radius) || 1);
+  const extent = Math.max(1, Math.ceil(sigma * 3));
+  const kernel = new Float32Array(extent * 2 + 1);
+  let total = 0;
+  for (let offset = -extent; offset <= extent; offset += 1) {
+    const weight = Math.exp(-(offset * offset) / (2 * sigma * sigma));
+    kernel[offset + extent] = Math.fround(weight);
+    total += weight;
+  }
+  for (let index = 0; index < kernel.length; index += 1) {
+    kernel[index] = Math.fround(kernel[index] / total);
+  }
+  return kernel;
+}
+
+function horizontalBlur(source, target, width, height, kernel, stride = 1, channel = 0) {
+  const extent = (kernel.length - 1) / 2;
+  for (let y = 0; y < height; y += 1) {
+    const row = y * width;
+    for (let x = 0; x < width; x += 1) {
+      let sum = 0;
+      for (let offset = -extent; offset <= extent; offset += 1) {
+        const sampleX = reflect101(x + offset, width);
+        sum += source[(row + sampleX) * stride + channel] * kernel[offset + extent];
+      }
+      target[row + x] = Math.fround(sum);
+    }
+  }
+}
+
+function verticalSample(source, x, y, width, height, kernel) {
+  const extent = (kernel.length - 1) / 2;
+  let sum = 0;
+  for (let offset = -extent; offset <= extent; offset += 1) {
+    const sampleY = reflect101(y + offset, height);
+    sum += source[sampleY * width + x] * kernel[offset + extent];
+  }
+  return Math.fround(sum);
+}
+
+export function applySharpening(
+  corrected,
+  originalBytes,
+  width,
+  height,
+  settings,
+  outputBytes,
+  onProgress = null,
+) {
+  const amount = Number(settings.sharpen_amount ?? 0);
+  const master = Number(settings.master ?? 1);
+  const pixelCount = width * height;
+
+  if (amount <= 0.001) {
+    for (let pixel = 0; pixel < pixelCount; pixel += 1) {
+      const byteOffset = pixel * 4;
+      const floatOffset = pixel * 3;
+      for (let channel = 0; channel < 3; channel += 1) {
+        const original = originalBytes[byteOffset + channel] / 255;
+        outputBytes[byteOffset + channel] = Math.round(
+          clamp(original * (1 - master) + corrected[floatOffset + channel] * master) * 255,
+        );
+      }
+    }
+    return outputBytes;
+  }
+
+  const kernel = gaussianKernel(settings.sharpen_radius);
+  const threshold = Math.max(0, Number(settings.sharpen_threshold ?? 0.02));
+  const feather = Math.max(threshold * 0.5, 1e-4);
+  const gate = new Float32Array(pixelCount);
+  const temporary = new Float32Array(pixelCount);
+
+  for (let pixel = 0; pixel < pixelCount; pixel += 1) {
+    const offset = pixel * 3;
+    gate[pixel] = Math.fround(
+      corrected[offset] * 0.2126
+      + corrected[offset + 1] * 0.7152
+      + corrected[offset + 2] * 0.0722,
+    );
+  }
+  horizontalBlur(gate, temporary, width, height, kernel);
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      const pixel = y * width + x;
+      const offset = pixel * 3;
+      const originalLuma = Math.fround(
+        corrected[offset] * 0.2126
+        + corrected[offset + 1] * 0.7152
+        + corrected[offset + 2] * 0.0722,
+      );
+      const magnitude = Math.abs(originalLuma - verticalSample(
+        temporary,
+        x,
+        y,
+        width,
+        height,
+        kernel,
+      ));
+      gate[pixel] = threshold > 0
+        ? Math.fround(clamp((magnitude - threshold) / feather))
+        : 1;
+    }
+    if (onProgress && y % 32 === 0) onProgress(0.58 + (y / height) * 0.12);
+  }
+
+  for (let channel = 0; channel < 3; channel += 1) {
+    horizontalBlur(corrected, temporary, width, height, kernel, 3, channel);
+    for (let y = 0; y < height; y += 1) {
+      for (let x = 0; x < width; x += 1) {
+        const pixel = y * width + x;
+        const floatOffset = pixel * 3 + channel;
+        const byteOffset = pixel * 4 + channel;
+        const base = corrected[floatOffset];
+        const blurred = verticalSample(temporary, x, y, width, height, kernel);
+        const sharpened = Math.fround(base + (base - blurred) * amount * gate[pixel]);
+        const safe = Number.isFinite(sharpened) ? clamp(sharpened) : clamp(base);
+        const original = originalBytes[byteOffset] / 255;
+        outputBytes[byteOffset] = Math.round(clamp(
+          original * (1 - master) + safe * master,
+        ) * 255);
+      }
+      if (onProgress && y % 32 === 0) {
+        onProgress(0.70 + ((channel * height + y) / (height * 3)) * 0.29);
+      }
+    }
+  }
+  return outputBytes;
+}
+
 export function processImageData(imageData, settings, onProgress = null, analysis = null) {
   const data = imageData.data;
+  const normalized = normalizeSettings(settings);
   const scene = analysis || analyzeImageData(imageData);
-  const curves = prepareLevels(settings);
+  const curves = prepareLevels(normalized);
   const totalPixels = data.length / 4;
+
+  if (normalized.sharpen_amount <= 0.001) {
+    for (let offset = 0; offset < data.length; offset += 4) {
+      const [red, green, blue] = adjustPixel(
+        data[offset] / 255,
+        data[offset + 1] / 255,
+        data[offset + 2] / 255,
+        normalized,
+        scene,
+        curves,
+      );
+      data[offset] = Math.round(red * 255);
+      data[offset + 1] = Math.round(green * 255);
+      data[offset + 2] = Math.round(blue * 255);
+      if (onProgress && offset % 1_000_000 === 0) {
+        onProgress((offset / 4) / totalPixels);
+      }
+    }
+    onProgress?.(1);
+    return imageData;
+  }
+
+  const originalBytes = new Uint8ClampedArray(data);
+  const corrected = new Float32Array(totalPixels * 3);
   for (let offset = 0; offset < data.length; offset += 4) {
-    const [red, green, blue] = adjustPixel(
+    const [red, green, blue] = adjustPixelBeforeMaster(
       data[offset] / 255,
       data[offset + 1] / 255,
       data[offset + 2] / 255,
-      settings,
+      normalized,
       scene,
       curves,
     );
-    data[offset] = Math.round(red * 255);
-    data[offset + 1] = Math.round(green * 255);
-    data[offset + 2] = Math.round(blue * 255);
+    const floatOffset = (offset / 4) * 3;
+    corrected[floatOffset] = Math.fround(red);
+    corrected[floatOffset + 1] = Math.fround(green);
+    corrected[floatOffset + 2] = Math.fround(blue);
     if (onProgress && offset % 1_000_000 === 0) {
-      onProgress((offset / 4) / totalPixels);
+      onProgress(((offset / 4) / totalPixels) * 0.58);
     }
   }
+  applySharpening(
+    corrected,
+    originalBytes,
+    imageData.width,
+    imageData.height,
+    normalized,
+    data,
+    onProgress,
+  );
   onProgress?.(1);
   return imageData;
 }
