@@ -36,6 +36,21 @@ small refinements.
 - Temporally stable HEVC video correction
 - Shared color-managed WebAssembly core for Python/web algorithm parity
 
+## [0.5.0] - 2026-07-28
+
+### Added
+
+- Neutral-by-default Green correction beside Red recovery and Blue balance
+- Five-point monotonic Levels for RGB, Red, Green, and Blue, with a histogram,
+  channel reset/bypass, keyboard control, undo/redo, copied edits, and export parity
+- A checked-in desktop UI/settings contract as the reference for web parity
+- Representative identity, monotonicity, channel-isolation, and non-black
+  image-math coverage
+
+### Changed
+
+- Point-centered magnifier steps now move in 25% increments
+
 ## [0.4.1] - 2026-07-26
 
 ### Added
@@ -101,7 +116,8 @@ small refinements.
 - Local FastAPI service and responsive editor
 - Non-destructive sessions, presets, undo/redo, and before/after comparison
 
-[Unreleased]: https://github.com/TomerSY/ReefTone/compare/v0.4.1...HEAD
+[Unreleased]: https://github.com/TomerSY/ReefTone/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/TomerSY/ReefTone/compare/v0.4.1...v0.5.0
 [0.4.1]: https://github.com/TomerSY/ReefTone/releases/tag/v0.4.1
 [0.4.0]: https://github.com/TomerSY/ReefTone/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/TomerSY/ReefTone/compare/v0.2.0...v0.3.0

@@ -14,13 +14,13 @@ like a focused desktop editor today and can grow into a hosted product later.
 - base bit-depth, ICC/P3, transfer-function, HDR gain-map, and auxiliary-image detection
 - float32 processing from decode through correction
 - scene analysis for red attenuation, cyan cast, haze, and low light
-- underwater red compensation and confidence-gated white balance
+- underwater red compensation, Green correction, and confidence-gated white balance
 - research-backed multiscale fusion of color-balanced and contrast-enhanced inputs
-- exposure, contrast, black/white points, tone, vibrance, clarity, and denoise
+- exposure, contrast, five-point RGB/channel Levels, tone, vibrance, clarity, and denoise
 - a neutral-point eyedropper plus per-slider reset and non-destructive bypass
 - a real-time before/after editor with distinct presets, undo/redo, drag-and-drop,
   and keyboard-accessible controls
-- point-centered magnifier zoom, fixed pixel-ratio views, and drag-to-pan
+- point-centered 25% magnifier zoom, fixed pixel-ratio views, and drag-to-pan
 - collapsible source color-space and dynamic-range information
 - full-resolution JPEG, PNG, and 16-bit TIFF export
 - 10-bit HEIC export with source ICC, EXIF, and available XMP preservation
@@ -59,8 +59,10 @@ screen. You can also drag a file anywhere over the app.
 2. Use the comparison divider to check skin, coral, and open-water gradients.
 3. Adjust **Red recovery** before adding saturation. This restores missing balance
    more naturally than globally boosting color.
-4. Use **Fusion clarity** to blend in the multiscale contrast branch.
-5. Export a JPEG for sharing or a 16-bit TIFF as a high-quality editing master.
+4. Use **Green correction** when green dominates after red recovery, then refine
+   tonal placement with the five Levels markers.
+5. Use **Fusion clarity** to blend in the multiscale contrast branch.
+6. Export a JPEG for sharing or a 16-bit TIFF as a high-quality editing master.
 
 Use the eyedropper only on something that should be gray, white, or neutral.
 ReefTone averages a small patch and balances it without changing any other slider.
@@ -119,6 +121,8 @@ JPEG photographs rather than camera RAW development. See
 [the algorithm notes](docs/algorithm.md) for details and limitations. The measurements
 behind the Dramatic look are recorded in
 [the reference-style analysis](docs/reference-style-analysis.md).
+The exact desktop labels, layout tokens, and serialized setting behavior are the
+reference for web parity in [the desktop UI contract](docs/desktop-ui-contract.md).
 
 Apple gain-map HDR is now detected and reported separately from the SDR base.
 ReefTone does not copy an unchanged gain map onto edited pixels or falsely tag an

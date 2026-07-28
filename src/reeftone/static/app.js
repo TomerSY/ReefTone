@@ -1,6 +1,10 @@
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
-const APP_VERSION = "0.4.1";
+const APP_VERSION = "0.5.0";
+const LEVEL_CHANNELS = ["rgb", "red", "green", "blue"];
+const LEVEL_POINTS = ["black", "shadows", "midtone", "highlights", "white"];
+const LEVEL_DEFAULTS = [0, 0.25, 0.5, 0.75, 1];
+const LEVEL_VIEW = {width: 288, height: 128, padding: 12};
 
 const state = {
   session: null,
@@ -26,6 +30,7 @@ const state = {
   originalUrl: null,
   dragDepth: 0,
   sampling: false,
+  levelsChannel: "rgb",
 };
 
 const elements = {
@@ -59,6 +64,12 @@ const elements = {
   colorCard: $("#colorCard"),
   colorCardContent: $("#colorCardContent"),
   zoomPercent: $("#zoomPercent"),
+  levelsControl: $("#levelsControl"),
+  levelsChannel: $("#levelsChannel"),
+  levelsEditor: $("#levelsEditor"),
+  levelsCurve: $("#levelsCurve"),
+  levelsMarkers: $("#levelsMarkers"),
+  levelsHistogram: $("#levelsHistogram"),
 };
 
 function formatBytes(bytes) {
@@ -199,6 +210,7 @@ async function activateSession(session) {
   elements.original.src = state.originalUrl;
   elements.corrected.src = state.originalUrl;
   await elements.original.decode();
+  drawLevelsHistogram();
   scrollToTop();
   alignImageLayers();
   setSwipeEnabled(true);
@@ -353,6 +365,12 @@ function effectiveSettings() {
   state.bypassed.forEach(name => {
     if (Object.hasOwn(effective, name)) effective[name] = 0;
   });
+  LEVEL_CHANNELS.forEach(channel => {
+    if (!state.bypassed.has(`levels_${channel}`)) return;
+    LEVEL_POINTS.forEach((point, index) => {
+      effective[`levels_${channel}_${point}`] = LEVEL_DEFAULTS[index];
+    });
+  });
   return effective;
 }
 
@@ -421,6 +439,7 @@ function syncControls() {
   });
   $("#autoToggle").checked = state.settings.auto_restore > 0;
   syncSampleStatus();
+  renderLevelsControl();
 }
 
 function applyPreset(name, record = true) {
@@ -490,6 +509,169 @@ function addPerControlActions() {
       schedulePreview(0);
     });
   });
+}
+
+function levelsKey(channel, point) {
+  return `levels_${channel}_${point}`;
+}
+
+function levelsValues(channel = state.levelsChannel) {
+  return LEVEL_POINTS.map((point, index) => Number(
+    state.settings[levelsKey(channel, point)] ?? LEVEL_DEFAULTS[index]
+  ));
+}
+
+function monotoneCurveValue(input, values) {
+  const delta = values.slice(1).map((value, index) => (value - values[index]) * 4);
+  const tangents = [0, 0, 0, 0, 0];
+  for (let index = 1; index < 4; index += 1) {
+    const before = delta[index - 1];
+    const after = delta[index];
+    if (before > 0 && after > 0) tangents[index] = 2 * before * after / (before + after);
+  }
+  tangents[0] = (3 * delta[0] - delta[1]) / 2;
+  if (tangents[0] * delta[0] <= 0) tangents[0] = 0;
+  else if (Math.abs(tangents[0]) > 3 * Math.abs(delta[0])) tangents[0] = 3 * delta[0];
+  tangents[4] = (3 * delta[3] - delta[2]) / 2;
+  if (tangents[4] * delta[3] <= 0) tangents[4] = 0;
+  else if (Math.abs(tangents[4]) > 3 * Math.abs(delta[3])) tangents[4] = 3 * delta[3];
+
+  const scaled = Math.max(0, Math.min(1, input)) * 4;
+  const segment = Math.min(Math.floor(scaled), 3);
+  const position = scaled - segment;
+  const position2 = position * position;
+  const position3 = position2 * position;
+  return Math.max(0, Math.min(1,
+    (2 * position3 - 3 * position2 + 1) * values[segment]
+    + (position3 - 2 * position2 + position) * tangents[segment] * 0.25
+    + (-2 * position3 + 3 * position2) * values[segment + 1]
+    + (position3 - position2) * tangents[segment + 1] * 0.25
+  ));
+}
+
+function levelCoordinates(index, value) {
+  const {width, height, padding} = LEVEL_VIEW;
+  return {
+    x: padding + index * (width - padding * 2) / 4,
+    y: padding + (1 - value) * (height - padding * 2),
+  };
+}
+
+function renderLevelsControl() {
+  if (!elements.levelsControl) return;
+  const channel = state.levelsChannel;
+  const values = levelsValues(channel);
+  elements.levelsChannel.value = channel;
+  elements.levelsControl.dataset.channel = channel;
+  const channelLabel = channel === "rgb"
+    ? "RGB"
+    : channel[0].toUpperCase() + channel.slice(1);
+  elements.levelsEditor.setAttribute(
+    "aria-label",
+    `${channelLabel} five-point levels curve`,
+  );
+  const bypassed = state.bypassed.has(`levels_${channel}`);
+  elements.levelsControl.classList.toggle("bypassed", bypassed);
+  $("#levelsBypass").setAttribute("aria-pressed", String(!bypassed));
+  $("#levelsBypass").title = bypassed
+    ? `Enable ${channelLabel} levels`
+    : `Temporarily disable ${channelLabel} levels`;
+
+  const samples = Array.from({length: 97}, (_, index) => {
+    const input = index / 96;
+    const {x, y} = levelCoordinates(input * 4, monotoneCurveValue(input, values));
+    return `${index ? "L" : "M"}${x.toFixed(2)} ${y.toFixed(2)}`;
+  });
+  elements.levelsCurve.setAttribute("d", samples.join(" "));
+  elements.levelsMarkers.innerHTML = values.map((value, index) => {
+    const {x, y} = levelCoordinates(index, value);
+    const point = LEVEL_POINTS[index];
+    const label = point[0].toUpperCase() + point.slice(1);
+    return `<circle class="levels-marker" data-level-index="${index}" cx="${x}" cy="${y}" r="6" tabindex="0" role="slider" aria-label="${label}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(value * 100)}"></circle>`;
+  }).join("");
+}
+
+function drawLevelsHistogram() {
+  if (!elements.levelsHistogram) return;
+  const context = elements.levelsHistogram.getContext("2d");
+  const {width, height, padding} = LEVEL_VIEW;
+  context.clearRect(0, 0, width, height);
+  if (!state.session || !elements.original.complete || !elements.original.naturalWidth) return;
+
+  const sample = document.createElement("canvas");
+  const scale = Math.min(1, 256 / Math.max(
+    elements.original.naturalWidth,
+    elements.original.naturalHeight,
+  ));
+  sample.width = Math.max(1, Math.round(elements.original.naturalWidth * scale));
+  sample.height = Math.max(1, Math.round(elements.original.naturalHeight * scale));
+  const sampleContext = sample.getContext("2d", {willReadFrequently: true});
+  sampleContext.drawImage(elements.original, 0, 0, sample.width, sample.height);
+  const data = sampleContext.getImageData(0, 0, sample.width, sample.height).data;
+  const bins = new Uint32Array(64);
+  const channelIndex = {red: 0, green: 1, blue: 2}[state.levelsChannel];
+  for (let offset = 0; offset < data.length; offset += 4) {
+    const value = channelIndex === undefined
+      ? data[offset] * 0.2126 + data[offset + 1] * 0.7152 + data[offset + 2] * 0.0722
+      : data[offset + channelIndex];
+    bins[Math.min(63, Math.floor(value / 4))] += 1;
+  }
+  const peak = Math.max(...bins, 1);
+  const color = {
+    rgb: "rgba(108,224,196,.48)",
+    red: "rgba(255,143,131,.48)",
+    green: "rgba(121,229,155,.48)",
+    blue: "rgba(118,183,255,.48)",
+  }[state.levelsChannel];
+  context.beginPath();
+  context.moveTo(padding, height - padding);
+  bins.forEach((count, index) => {
+    const x = padding + index / (bins.length - 1) * (width - padding * 2);
+    const y = height - padding - Math.sqrt(count / peak) * (height - padding * 2);
+    context.lineTo(x, y);
+  });
+  context.lineTo(width - padding, height - padding);
+  context.closePath();
+  context.fillStyle = color;
+  context.fill();
+}
+
+function setLevelValue(index, value, record = false) {
+  const channel = state.levelsChannel;
+  const values = levelsValues(channel);
+  const minimum = index === 0 ? 0 : values[index - 1];
+  const maximum = index === 4 ? 1 : values[index + 1];
+  const next = Math.max(minimum, Math.min(maximum, value));
+  const previous = record ? settingsSnapshot() : null;
+  state.settings[levelsKey(channel, LEVEL_POINTS[index])] = Number(next.toFixed(4));
+  state.bypassed.delete(`levels_${channel}`);
+  if (previous !== null) pushHistory(previous);
+  renderLevelsControl();
+  clearPresetSelection();
+  schedulePreview(record ? 0 : 80);
+}
+
+function resetLevelsChannel() {
+  const previous = settingsSnapshot();
+  LEVEL_POINTS.forEach((point, index) => {
+    state.settings[levelsKey(state.levelsChannel, point)] = LEVEL_DEFAULTS[index];
+  });
+  state.bypassed.delete(`levels_${state.levelsChannel}`);
+  pushHistory(previous);
+  renderLevelsControl();
+  clearPresetSelection();
+  schedulePreview(0);
+}
+
+function toggleLevelsBypass() {
+  const previous = settingsSnapshot();
+  const name = `levels_${state.levelsChannel}`;
+  if (state.bypassed.has(name)) state.bypassed.delete(name);
+  else state.bypassed.add(name);
+  pushHistory(previous);
+  renderLevelsControl();
+  clearPresetSelection();
+  schedulePreview(0);
 }
 
 function syncSampleStatus() {
@@ -761,7 +943,7 @@ function setZoomMode(mode) {
 }
 
 function focalZoom(direction, event) {
-  setZoomScale(state.zoomScale + direction * 0.1, "manual", event);
+  setZoomScale(state.zoomScale + direction * 0.25, "manual", event);
 }
 
 function handleImageClick(event) {
@@ -850,6 +1032,57 @@ function bindEvents() {
     button.addEventListener("click", () => setZoomMode(button.dataset.zoom));
   });
   $("#zoomStepButton").addEventListener("click", () => setZoomTool(!state.zoomTool));
+  elements.levelsChannel.addEventListener("change", event => {
+    state.levelsChannel = event.target.value;
+    renderLevelsControl();
+    drawLevelsHistogram();
+  });
+  $("#levelsReset").addEventListener("click", resetLevelsChannel);
+  $("#levelsBypass").addEventListener("click", toggleLevelsBypass);
+
+  let levelsDrag = null;
+  elements.levelsEditor.addEventListener("pointerdown", event => {
+    const marker = event.target.closest(".levels-marker");
+    if (!marker) return;
+    levelsDrag = {
+      pointerId: event.pointerId,
+      index: Number(marker.dataset.levelIndex),
+      previous: settingsSnapshot(),
+    };
+    elements.levelsEditor.setPointerCapture(event.pointerId);
+    event.preventDefault();
+  });
+  elements.levelsEditor.addEventListener("pointermove", event => {
+    if (!levelsDrag || levelsDrag.pointerId !== event.pointerId) return;
+    const rect = elements.levelsEditor.getBoundingClientRect();
+    const y = (event.clientY - rect.top) / rect.height * LEVEL_VIEW.height;
+    const value = 1 - (y - LEVEL_VIEW.padding) / (
+      LEVEL_VIEW.height - LEVEL_VIEW.padding * 2
+    );
+    setLevelValue(levelsDrag.index, value);
+  });
+  const finishLevelsDrag = event => {
+    if (!levelsDrag || levelsDrag.pointerId !== event.pointerId) return;
+    const previous = levelsDrag.previous;
+    levelsDrag = null;
+    pushHistory(previous);
+    schedulePreview(0);
+  };
+  elements.levelsEditor.addEventListener("pointerup", finishLevelsDrag);
+  elements.levelsEditor.addEventListener("pointercancel", finishLevelsDrag);
+  elements.levelsEditor.addEventListener("keydown", event => {
+    const marker = event.target.closest(".levels-marker");
+    const supported = ["ArrowUp", "ArrowRight", "ArrowDown", "ArrowLeft"];
+    if (!marker || !supported.includes(event.key)) return;
+    event.preventDefault();
+    const direction = ["ArrowUp", "ArrowRight"].includes(event.key) ? 1 : -1;
+    const index = Number(marker.dataset.levelIndex);
+    setLevelValue(
+      index,
+      levelsValues()[index] + direction * (event.shiftKey ? 0.05 : 0.01),
+      true,
+    );
+  });
 
   $$(".presets button").forEach(button => button.addEventListener("click", () => applyPreset(button.dataset.preset)));
   elements.eyedropperButton.addEventListener("click", () => {

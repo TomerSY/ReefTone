@@ -5,6 +5,10 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass, fields
 from typing import Any
 
+LEVEL_CHANNELS = ("rgb", "red", "green", "blue")
+LEVEL_POINTS = ("black", "shadows", "midtone", "highlights", "white")
+LEVEL_DEFAULTS = (0.0, 0.25, 0.5, 0.75, 1.0)
+
 
 @dataclass(slots=True)
 class CorrectionSettings:
@@ -13,6 +17,7 @@ class CorrectionSettings:
     master: float = 1.0
     auto_restore: float = 0.90
     red_recovery: float = 0.95
+    green_correction: float = 0.0
     blue_balance: float = 0.24
     dehaze: float = 0.38
     temperature: float = 0.04
@@ -31,11 +36,32 @@ class CorrectionSettings:
     sample_green: float = 0.0
     sample_blue: float = 0.0
     sample_strength: float = 0.0
+    levels_rgb_black: float = 0.0
+    levels_rgb_shadows: float = 0.25
+    levels_rgb_midtone: float = 0.5
+    levels_rgb_highlights: float = 0.75
+    levels_rgb_white: float = 1.0
+    levels_red_black: float = 0.0
+    levels_red_shadows: float = 0.25
+    levels_red_midtone: float = 0.5
+    levels_red_highlights: float = 0.75
+    levels_red_white: float = 1.0
+    levels_green_black: float = 0.0
+    levels_green_shadows: float = 0.25
+    levels_green_midtone: float = 0.5
+    levels_green_highlights: float = 0.75
+    levels_green_white: float = 1.0
+    levels_blue_black: float = 0.0
+    levels_blue_shadows: float = 0.25
+    levels_blue_midtone: float = 0.5
+    levels_blue_highlights: float = 0.75
+    levels_blue_white: float = 1.0
 
     RANGES = {
         "master": (0.0, 1.0),
         "auto_restore": (0.0, 1.0),
         "red_recovery": (0.0, 1.5),
+        "green_correction": (-1.0, 1.0),
         "blue_balance": (-1.0, 1.0),
         "dehaze": (0.0, 1.0),
         "temperature": (-1.0, 1.0),
@@ -54,6 +80,11 @@ class CorrectionSettings:
         "sample_green": (0.0, 1.0),
         "sample_blue": (0.0, 1.0),
         "sample_strength": (0.0, 1.0),
+        **{
+            f"levels_{channel}_{point}": (0.0, 1.0)
+            for channel in LEVEL_CHANNELS
+            for point in LEVEL_POINTS
+        },
     }
 
     @classmethod
@@ -70,10 +101,28 @@ class CorrectionSettings:
                 continue
             low, high = cls.RANGES[key]
             clean[key] = min(high, max(low, number))
-        return cls(**clean)
+        settings = cls(**clean)
+        for channel in LEVEL_CHANNELS:
+            for point, value in zip(LEVEL_POINTS, settings.level_points(channel), strict=True):
+                setattr(settings, f"levels_{channel}_{point}", value)
+        return settings
 
     def to_dict(self) -> dict[str, float]:
         return asdict(self)
+
+    def level_points(self, channel: str) -> tuple[float, float, float, float, float]:
+        """Return a safe non-decreasing five-point curve for a supported channel."""
+
+        if channel not in LEVEL_CHANNELS:
+            raise ValueError(f"Unsupported levels channel: {channel}")
+        values: list[float] = []
+        previous = 0.0
+        for point in LEVEL_POINTS:
+            value = min(1.0, max(0.0, float(getattr(self, f"levels_{channel}_{point}"))))
+            value = max(previous, value)
+            values.append(value)
+            previous = value
+        return values[0], values[1], values[2], values[3], values[4]
 
 
 PRESETS: dict[str, CorrectionSettings] = {

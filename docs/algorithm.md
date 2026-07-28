@@ -35,7 +35,7 @@ Decode + orient → RGB float32
         ↓
 Robust scene analysis
         ↓
-Red compensation + adaptive gray-world balance
+Red compensation + Green correction + adaptive gray-world balance
         ↓
 Optional user-sampled neutral-point gains
         ↓
@@ -43,6 +43,8 @@ Color-balanced branch ─┐
 Contrast/CLAHE branch ─┼→ Gaussian/Laplacian pyramid fusion
         ↓              ┘
 Exposure → black/white points → tone curve
+        ↓
+RGB Levels → Red → Green → Blue Levels
         ↓
 Color → clarity/denoise → non-destructive master mix
 ```
@@ -71,7 +73,10 @@ magenta. After compensation, robust channel means are measured again and a
 confidence-weighted gray-world gain brings red closer to green without forcing the
 entire water column to neutral gray.
 
-Temperature and tint are direct creative gains and remain neutral at zero.
+Green correction is a scene-relative artist control. Positive values move a
+green-heavy channel toward the mean of red and blue; negative values can restore
+green when it is deficient. Temperature and tint remain direct creative gains.
+All three controls are neutral at zero.
 
 ### 3. Neutral-point eyedropper
 
@@ -99,6 +104,8 @@ controls how strongly the fused result replaces the balanced base.
 - shadows and highlights use luminance masks;
 - black point and white point remap the endpoints before contrast;
 - contrast uses an exponential mid-gray pivot so small changes are visible;
+- Levels uses five fixed input anchors and monotone cubic interpolation, applying
+  RGB before the Red, Green, and Blue channel curves;
 - vibrance preferentially affects low-saturation colors;
 - clarity is a mid-frequency unsharp mask;
 - denoise is an edge-preserving bilateral blend.
@@ -112,6 +119,11 @@ Every slider has two local actions:
 
 Preset values are intentionally separated, and the master mix blends the entire
 corrected result with the untouched source.
+
+Levels has the same behavior at channel scope. Reset restores the identity
+`0, 0.25, 0.5, 0.75, 1` curve, while bypass temporarily substitutes that identity
+without discarding the edited markers. Marker ordering is enforced in the UI and
+again when API settings are parsed.
 
 ## Precision and limitations
 

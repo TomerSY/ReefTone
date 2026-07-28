@@ -22,10 +22,11 @@
 * { box-sizing: border-box; }
 html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; }
 body { background: var(--bg); color: var(--text); }
-button, input { font: inherit; }
+button, input, select { font: inherit; }
 button { color: inherit; }
 svg { display: block; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
 [hidden] { display: none !important; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 
 .app { height: 100%; display: grid; grid-template-rows: 64px minmax(0, 1fr); }
 .topbar {
@@ -207,6 +208,33 @@ h1, h2, h3, p { margin-top: 0; }
 .slider-control.bypassed input { opacity: .34; }
 .slider-control.bypassed .bypass-control { color: var(--accent); background: rgba(108,224,196,.10); }
 .master-control { padding-top: 2px; }
+
+.levels-heading { align-items: flex-start; margin-bottom: 10px; }
+.levels-toolbar { display: flex; align-items: center; gap: 4px; }
+.levels-toolbar label { display: flex; }
+.levels-toolbar select { min-width: 67px; height: 25px; padding: 0 21px 0 8px; border: 1px solid var(--line-strong); border-radius: 6px; color: #c8d7d2; background: var(--surface-2); font-size: 8px; cursor: pointer; }
+.levels-toolbar select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.levels-control { position: relative; width: 100%; aspect-ratio: 9 / 4; overflow: hidden; border: 1px solid var(--line); border-radius: 8px; background: linear-gradient(180deg, rgba(255,255,255,.025), rgba(0,0,0,.10)); transition: opacity .16s; touch-action: none; }
+.levels-control canvas, .levels-control svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.levels-control canvas { opacity: .46; }
+.levels-control svg { overflow: visible; }
+.levels-grid { fill: none; stroke: rgba(196,239,225,.09); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.levels-curve { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.levels-marker { fill: #c9f7eb; stroke: #0d1816; stroke-width: 2; cursor: ns-resize; vector-effect: non-scaling-stroke; }
+.levels-marker:hover, .levels-marker:focus-visible { fill: #fff; stroke: var(--accent); outline: none; }
+.levels-control[data-channel="red"] .levels-curve { stroke: #ff8f83; }
+.levels-control[data-channel="red"] .levels-marker { fill: #ffc0b8; }
+.levels-control[data-channel="green"] .levels-curve { stroke: #79e59b; }
+.levels-control[data-channel="green"] .levels-marker { fill: #bcf4cb; }
+.levels-control[data-channel="blue"] .levels-curve { stroke: #76b7ff; }
+.levels-control[data-channel="blue"] .levels-marker { fill: #bcdcff; }
+.levels-control.bypassed canvas, .levels-control.bypassed .levels-grid,
+.levels-control.bypassed .levels-curve, .levels-control.bypassed .levels-marker { opacity: .3; }
+.levels-toolbar #levelsBypass[aria-pressed="false"] { color: var(--accent); background: rgba(108,224,196,.10); }
+.levels-labels { display: grid; grid-template-columns: repeat(5, 1fr); margin-top: 5px; color: var(--muted-2); font-size: 7px; }
+.levels-labels span { text-align: center; }
+.levels-labels span:first-child { text-align: left; }
+.levels-labels span:last-child { text-align: right; }
 
 .balance-heading { align-items: flex-start; }
 .eyedropper-button {

@@ -13,7 +13,7 @@ import cv2
 import numpy as np
 from numpy.typing import NDArray
 
-from .config import CorrectionSettings
+from .config import LEVEL_CHANNELS, LEVEL_DEFAULTS, CorrectionSettings
 
 FloatImage = NDArray[np.float32]
 
@@ -160,6 +160,17 @@ def _adaptive_white_balance(
         * (0.35 + recovered[..., 1])
     )
 
+    # Positive Green correction moves a green-heavy scene toward the mean of the
+    # red and blue channels. Negative values deliberately add green when needed.
+    green_target = (red_mean + blue_mean) * 0.5
+    green_gap = green_target - green_mean
+    recovered[..., 1] += (
+        green_gap
+        * settings.green_correction
+        * (1.0 - recovered[..., 1])
+        * (0.35 + recovered[..., 2])
+    )
+
     # Re-measure before the gray-world stage. The target remains slightly cool by
     # design, but is much closer to neutral than the previous pale-cyan result.
     balanced_means, _, _ = _robust_channel_stats(np.clip(recovered, 0.0, 1.0))
@@ -289,6 +300,74 @@ def _apply_tone(image: FloatImage, settings: CorrectionSettings) -> FloatImage:
     return np.clip(result, 0.0, 1.0)
 
 
+def _monotone_curve(
+    values: NDArray[np.float32],
+    points: tuple[float, float, float, float, float],
+) -> NDArray[np.float32]:
+    """Evaluate a five-point monotone cubic Hermite curve without overshoot."""
+
+    if points == LEVEL_DEFAULTS:
+        return values.astype(np.float32, copy=False)
+
+    controls = np.asarray(points, dtype=np.float32)
+    delta = np.diff(controls) * np.float32(4.0)
+    tangents = np.zeros(5, dtype=np.float32)
+
+    for index in range(1, 4):
+        before = float(delta[index - 1])
+        after = float(delta[index])
+        if before > 0.0 and after > 0.0:
+            tangents[index] = np.float32(2.0 * before * after / (before + after))
+
+    first = np.float32((3.0 * float(delta[0]) - float(delta[1])) * 0.5)
+    if first * delta[0] <= 0.0:
+        first = np.float32(0.0)
+    elif abs(float(first)) > 3.0 * abs(float(delta[0])):
+        first = np.float32(3.0) * delta[0]
+    tangents[0] = first
+
+    last = np.float32((3.0 * float(delta[3]) - float(delta[2])) * 0.5)
+    if last * delta[3] <= 0.0:
+        last = np.float32(0.0)
+    elif abs(float(last)) > 3.0 * abs(float(delta[3])):
+        last = np.float32(3.0) * delta[3]
+    tangents[4] = last
+
+    clipped = np.clip(values, 0.0, 1.0)
+    scaled = clipped * np.float32(4.0)
+    segment = np.minimum(scaled.astype(np.intp), 3)
+    position = scaled - segment.astype(np.float32)
+    position2 = position * position
+    position3 = position2 * position
+    h00 = 2.0 * position3 - 3.0 * position2 + 1.0
+    h10 = position3 - 2.0 * position2 + position
+    h01 = -2.0 * position3 + 3.0 * position2
+    h11 = position3 - position2
+    result = (
+        h00 * controls[segment]
+        + h10 * tangents[segment] * np.float32(0.25)
+        + h01 * controls[segment + 1]
+        + h11 * tangents[segment + 1] * np.float32(0.25)
+    )
+    return np.clip(result, 0.0, 1.0).astype(np.float32)
+
+
+def _apply_levels(image: FloatImage, settings: CorrectionSettings) -> FloatImage:
+    """Apply the master RGB curve, then the Red, Green, and Blue curves."""
+
+    rgb_points = settings.level_points("rgb")
+    channel_points = [settings.level_points(channel) for channel in LEVEL_CHANNELS[1:]]
+    result = _monotone_curve(image, rgb_points)
+    if result is image and any(points != LEVEL_DEFAULTS for points in channel_points):
+        result = image.copy()
+    for index, points in enumerate(channel_points):
+        result[..., index] = _monotone_curve(
+            result[..., index],
+            points,
+        )
+    return result
+
+
 def _apply_color(image: FloatImage, settings: CorrectionSettings) -> FloatImage:
     luma = _rgb_luma(image)[..., None]
     chroma = image - luma
@@ -324,6 +403,7 @@ def correct_image(
     fusion_amount = settings.dehaze * (0.62 + analysis.haze * 0.38)
     corrected = _multiscale_fusion(corrected, fusion_amount)
     corrected = _apply_tone(corrected, settings)
+    corrected = _apply_levels(corrected, settings)
     corrected = _apply_color(corrected, settings)
     corrected = _apply_detail(corrected, settings.clarity, settings.denoise)
 

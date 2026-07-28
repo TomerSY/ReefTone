@@ -5,10 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#08110f">
   <meta name="description" content="ReefTone — adaptive underwater color restoration.">
-  <meta name="reeftone-version" content="0.4.1">
+  <meta name="reeftone-version" content="0.5.0">
   <title>ReefTone Studio</title>
   <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="/static/styles.css?v=0.4.1">
+  <link rel="stylesheet" href="/static/styles.css?v=0.5.0">
 </head>
 <body>
   <div class="app" id="app">
@@ -80,7 +80,7 @@
               <button type="button" data-zoom="1" title="One image pixel per screen pixel">1:1</button>
               <button type="button" data-zoom="fill" title="Fill the canvas">Fill</button>
               <button type="button" data-zoom="2" title="Two screen pixels per image pixel">2:1</button>
-              <button id="zoomStepButton" type="button" aria-pressed="false" title="Select magnifier: click the image +10%, right-click −10%">
+              <button id="zoomStepButton" type="button" aria-pressed="false" title="Select magnifier: click the image +25%, right-click −25%">
                 <svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5M10.5 7.5v6m-3-3h6"/></svg>
                 <span id="zoomPercent">100%</span>
               </button>
@@ -210,6 +210,40 @@
             </div>
           </section>
 
+          <section class="control-section levels-section" id="levelsSection">
+            <div class="section-heading levels-heading">
+              <div><h3>Levels</h3><p>Five-point tonal curve</p></div>
+              <div class="levels-toolbar">
+                <label>
+                  <span class="visually-hidden">Levels channel</span>
+                  <select id="levelsChannel" aria-label="Levels channel">
+                    <option value="rgb">RGB</option>
+                    <option value="red">Red</option>
+                    <option value="green">Green</option>
+                    <option value="blue">Blue</option>
+                  </select>
+                </label>
+                <button class="mini-control" id="levelsReset" type="button" title="Reset selected levels channel" aria-label="Reset selected levels channel">
+                  <svg viewBox="0 0 24 24"><path d="M5 8v5h5"/><path d="M6.4 16a7 7 0 1 0 .2-8.2L5 10"/></svg>
+                </button>
+                <button class="mini-control bypass-control" id="levelsBypass" type="button" title="Temporarily disable selected levels channel" aria-label="Toggle selected levels channel" aria-pressed="true">
+                  <svg viewBox="0 0 24 24"><path d="M2.5 12s3.5-5 9.5-5 9.5 5 9.5 5-3.5 5-9.5 5-9.5-5-9.5-5Z"/><circle cx="12" cy="12" r="2.5"/></svg>
+                </button>
+              </div>
+            </div>
+            <div class="levels-control" id="levelsControl" data-channel="rgb">
+              <canvas id="levelsHistogram" width="288" height="128" aria-hidden="true"></canvas>
+              <svg id="levelsEditor" viewBox="0 0 288 128" role="group" aria-label="RGB five-point levels curve">
+                <path class="levels-grid" d="M12 12V116M78 12V116M144 12V116M210 12V116M276 12V116M12 12H276M12 38H276M12 64H276M12 90H276M12 116H276"/>
+                <path class="levels-curve" id="levelsCurve"></path>
+                <g id="levelsMarkers"></g>
+              </svg>
+            </div>
+            <div class="levels-labels" aria-hidden="true">
+              <span>Black</span><span>Shadows</span><span>Midtone</span><span>Highlights</span><span>White</span>
+            </div>
+          </section>
+
           <section class="control-section">
             <div class="section-heading">
               <div><h3>Auto Restore</h3><p>Scene-aware color recovery</p></div>
@@ -244,6 +278,10 @@
               <label class="slider-control">
                 <span>Red recovery</span><output data-output="red_recovery">95</output>
                 <input data-setting="red_recovery" type="range" min="0" max="1.5" step=".01" value=".95">
+              </label>
+              <label class="slider-control bipolar">
+                <span>Green correction</span><output data-output="green_correction">0</output>
+                <input data-setting="green_correction" type="range" min="-1" max="1" step=".01" value="0">
               </label>
               <label class="slider-control bipolar">
                 <span>Blue balance</span><output data-output="blue_balance">+24</output>
@@ -340,6 +378,6 @@
   </dialog>
 
   <div class="toast-region" id="toastRegion" aria-live="polite"></div>
-  <script src="/static/app.js?v=0.4.1" defer></script>
+  <script src="/static/app.js?v=0.5.0" defer></script>
 </body>
 </html>
