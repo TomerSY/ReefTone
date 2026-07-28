@@ -28,9 +28,12 @@ Available now:
 - mobile editing prioritizes the photo with a shorter header, a larger sticky
   preview, no floating color-information card or preview metadata, and a visible
   whole-image Before/After button beside the horizontally scrollable looks
-- mobile adjustment rows keep each label, value, reset, and bypass action
-  together above the slider, with moderately tighter section/control spacing;
-  the look and comparison boxes are slimmer without shrinking their text
+- mobile adjustment rows keep each label and reset/bypass actions at the sides
+  while centering the value above the slider, with moderately tighter
+  section/control spacing; the look and comparison boxes are slimmer without
+  shrinking their text
+- Sharpening is presented as a standard unboxed subsection using the same
+  heading hierarchy as the rest of Presence
 - full-resolution JPEG or PNG export in a Web Worker
 - installable PWA metadata and a small offline application shell
 - browser capability reporting for WebGPU, Display P3, HDR displays,

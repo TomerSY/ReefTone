@@ -51,6 +51,10 @@ small refinements.
 - Mobile adjustment labels, values, reset, and bypass actions now share one row
   above each slider; section/control spacing and top look boxes are moderately
   tighter while desktop geometry remains unchanged
+- Mobile adjustment values now sit at the true center above their sliders,
+  independent of the right-aligned reset and bypass actions
+- Web Sharpening now uses the standard Presence heading hierarchy without a
+  special card border, background, or inset padding
 
 ### Planned
 

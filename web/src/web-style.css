@@ -103,6 +103,23 @@ html, body { min-width: 320px; }
 #zoomToolButton.active { color: var(--accent-strong); background: rgba(38, 91, 78, .7); box-shadow: inset 0 0 0 1px rgba(108,224,196,.16); }
 .settings-clip.apply-only { grid-template-columns: minmax(0, 1fr) auto; }
 
+.sharpening-tool {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+.sharpening-heading strong {
+  color: var(--text);
+  font-size: calc(12px * var(--ui-scale));
+  font-weight: 680;
+}
+.sharpening-heading small {
+  margin-top: calc(3px * var(--ui-scale));
+  font-size: calc(9px * var(--ui-scale));
+  line-height: 1.4;
+}
+
 @media (max-width: 1035px) {
   .app {
     --web-mobile-header-height: 72px;
@@ -190,7 +207,7 @@ html, body { min-width: 320px; }
   .section-toggle { margin-bottom: calc(12px * var(--ui-scale)); }
   .control-list { gap: calc(12px * var(--ui-scale)); }
   .slider-control {
-    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
     column-gap: calc(6px * var(--ui-scale));
     row-gap: calc(4px * var(--ui-scale));
   }
@@ -205,10 +222,13 @@ html, body { min-width: 320px; }
   .slider-control output {
     grid-column: 2;
     grid-row: 1;
+    justify-self: center;
+    text-align: center;
   }
   .slider-control .control-actions {
     grid-column: 3;
     grid-row: 1;
+    justify-self: end;
   }
   .slider-control input {
     grid-column: 1 / -1;
@@ -218,7 +238,7 @@ html, body { min-width: 320px; }
   .master-control { padding-top: 0; }
   .sharpening-tool {
     gap: calc(12px * var(--ui-scale));
-    padding: calc(10px * var(--ui-scale));
+    padding: 0;
   }
   .control-section,
   .control-list,

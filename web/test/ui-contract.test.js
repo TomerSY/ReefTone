@@ -63,7 +63,7 @@ test("mobile prioritizes the photo and keeps Before/After beside the looks", asy
   assert.match(mobileRules, /height:\s*clamp\(320px,\s*55svh,\s*460px\)/);
 });
 
-test("mobile keeps setting actions inline and uses moderately tighter spacing", async () => {
+test("mobile centers setting values, keeps actions inline, and uses moderately tighter spacing", async () => {
   const webCss = await readFile(new URL("src/web-style.css", root), "utf8");
   const mobileRules = webCss.slice(
     webCss.indexOf("@media (max-width: 1035px)"),
@@ -72,8 +72,18 @@ test("mobile keeps setting actions inline and uses moderately tighter spacing", 
 
   assert.match(mobileRules, /\.control-section\s*\{\s*padding-block:\s*calc\(13px \* var\(--ui-scale\)\)/);
   assert.match(mobileRules, /\.control-list\s*\{\s*gap:\s*calc\(12px \* var\(--ui-scale\)\)/);
-  assert.match(mobileRules, /\.slider-control \.control-actions\s*\{[^}]*grid-column:\s*3;[^}]*grid-row:\s*1/s);
+  assert.match(mobileRules, /\.slider-control\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)\s+auto\s+minmax\(0,\s*1fr\)/s);
+  assert.match(mobileRules, /\.slider-control output\s*\{[^}]*grid-column:\s*2;[^}]*justify-self:\s*center;[^}]*text-align:\s*center/s);
+  assert.match(mobileRules, /\.slider-control \.control-actions\s*\{[^}]*grid-column:\s*3;[^}]*grid-row:\s*1;[^}]*justify-self:\s*end/s);
   assert.match(mobileRules, /\.slider-control input\s*\{[^}]*grid-row:\s*2;[^}]*margin-top:\s*0/s);
   assert.match(mobileRules, /\.toolbar-left \.presets button\s*\{[^}]*min-height:\s*36px/s);
   assert.match(mobileRules, /#beforeAfterButton\s*\{[^}]*min-height:\s*42px/s);
+});
+
+test("web sharpening is an unboxed subsection with the standard heading hierarchy", async () => {
+  const webCss = await readFile(new URL("src/web-style.css", root), "utf8");
+
+  assert.match(webCss, /\.sharpening-tool\s*\{[^}]*padding:\s*0;[^}]*border:\s*0;[^}]*border-radius:\s*0;[^}]*background:\s*transparent/s);
+  assert.match(webCss, /\.sharpening-heading strong\s*\{[^}]*font-size:\s*calc\(12px \* var\(--ui-scale\)\);[^}]*font-weight:\s*680/s);
+  assert.match(webCss, /\.sharpening-heading small\s*\{[^}]*font-size:\s*calc\(9px \* var\(--ui-scale\)\)/s);
 });
