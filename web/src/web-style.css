@@ -134,6 +134,7 @@ html, body { min-width: 320px; }
   }
   .workspace { min-height: calc(100vh - var(--web-mobile-header-height)); }
   .canvas-toolbar {
+    top: calc(10px * var(--ui-scale));
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: start;
@@ -149,10 +150,14 @@ html, body { min-width: 320px; }
   .toolbar-left .presets {
     display: flex;
     max-width: 100%;
+    padding: calc(2px * var(--ui-scale));
     overflow-x: auto;
     scrollbar-width: none;
   }
-  .toolbar-left .presets button { padding-inline: calc(5px * var(--ui-scale)); }
+  .toolbar-left .presets button {
+    min-height: 36px;
+    padding: calc(3px * var(--ui-scale)) calc(5px * var(--ui-scale));
+  }
   .toolbar-left .presets::-webkit-scrollbar { display: none; }
   .canvas-color-info { display: none; }
   .toolbar-right { display: flex; }
@@ -160,6 +165,8 @@ html, body { min-width: 320px; }
   #beforeAfterButton {
     display: inline-flex;
     flex: 0 0 auto;
+    min-height: 42px;
+    padding-inline: calc(8px * var(--ui-scale));
   }
   .editor-stage {
     padding: calc(48px * var(--ui-scale)) calc(12px * var(--ui-scale)) calc(8px * var(--ui-scale));
@@ -178,6 +185,41 @@ html, body { min-width: 320px; }
     max-width: calc(100cqi - (32px * var(--ui-scale)));
   }
   .controls-scroll { overflow-x: hidden; }
+  .control-section { padding-block: calc(13px * var(--ui-scale)); }
+  .section-heading,
+  .section-toggle { margin-bottom: calc(12px * var(--ui-scale)); }
+  .control-list { gap: calc(12px * var(--ui-scale)); }
+  .slider-control {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    column-gap: calc(6px * var(--ui-scale));
+    row-gap: calc(4px * var(--ui-scale));
+  }
+  .slider-control > span:first-child {
+    grid-column: 1;
+    grid-row: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .slider-control output {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .slider-control .control-actions {
+    grid-column: 3;
+    grid-row: 1;
+  }
+  .slider-control input {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    margin-top: 0;
+  }
+  .master-control { padding-top: 0; }
+  .sharpening-tool {
+    gap: calc(12px * var(--ui-scale));
+    padding: calc(10px * var(--ui-scale));
+  }
   .control-section,
   .control-list,
   .slider-control,

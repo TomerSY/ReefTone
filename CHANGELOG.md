@@ -48,6 +48,9 @@ small refinements.
 - Mobile web editing now removes the floating Color information card and
   low-priority preview metadata, keeps Before/After visible beside the looks,
   reduces header space, and gives the photo a substantially larger sticky area
+- Mobile adjustment labels, values, reset, and bypass actions now share one row
+  above each slider; section/control spacing and top look boxes are moderately
+  tighter while desktop geometry remains unchanged
 
 ### Planned
 

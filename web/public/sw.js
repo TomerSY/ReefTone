@@ -1,4 +1,4 @@
-const CACHE = "reeftone-web-alpha-6";
+const CACHE = "reeftone-web-alpha-7";
 
 self.addEventListener("install", event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(["/manifest.webmanifest"])));

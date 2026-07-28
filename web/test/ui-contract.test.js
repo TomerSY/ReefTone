@@ -62,3 +62,18 @@ test("mobile prioritizes the photo and keeps Before/After beside the looks", asy
   assert.match(mobileRules, /\.image-meta\s*\{\s*display:\s*none/);
   assert.match(mobileRules, /height:\s*clamp\(320px,\s*55svh,\s*460px\)/);
 });
+
+test("mobile keeps setting actions inline and uses moderately tighter spacing", async () => {
+  const webCss = await readFile(new URL("src/web-style.css", root), "utf8");
+  const mobileRules = webCss.slice(
+    webCss.indexOf("@media (max-width: 1035px)"),
+    webCss.indexOf("@media (max-width: 359px)"),
+  );
+
+  assert.match(mobileRules, /\.control-section\s*\{\s*padding-block:\s*calc\(13px \* var\(--ui-scale\)\)/);
+  assert.match(mobileRules, /\.control-list\s*\{\s*gap:\s*calc\(12px \* var\(--ui-scale\)\)/);
+  assert.match(mobileRules, /\.slider-control \.control-actions\s*\{[^}]*grid-column:\s*3;[^}]*grid-row:\s*1/s);
+  assert.match(mobileRules, /\.slider-control input\s*\{[^}]*grid-row:\s*2;[^}]*margin-top:\s*0/s);
+  assert.match(mobileRules, /\.toolbar-left \.presets button\s*\{[^}]*min-height:\s*36px/s);
+  assert.match(mobileRules, /#beforeAfterButton\s*\{[^}]*min-height:\s*42px/s);
+});

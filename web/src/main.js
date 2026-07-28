@@ -14,7 +14,7 @@ import {
 
 const $ = selector => document.querySelector(selector);
 const $$ = selector => [...document.querySelectorAll(selector)];
-const VERSION = "0.6.0-alpha.6";
+const VERSION = "0.6.0-alpha.7";
 const LEVEL_VIEW = Object.freeze({width: 288, height: 128, padding: 12});
 const CONTROL_DEFAULTS = Object.freeze({
   sharpen_amount: 0,
