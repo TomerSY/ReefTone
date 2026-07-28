@@ -23,6 +23,8 @@ Available now:
   Threshold in preview and full-resolution worker export
 - whole-image Before/After by default, explicit opt-in Swipe comparison, plus
   25-point focal magnifier zoom and drag-to-pan
+- a loaded photo stays visible beneath the header while its controls scroll on
+  mobile devices; desktop layout and scrolling are unchanged
 - full-resolution JPEG or PNG export in a Web Worker
 - installable PWA metadata and a small offline application shell
 - browser capability reporting for WebGPU, Display P3, HDR displays,

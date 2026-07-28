@@ -14,7 +14,7 @@ import {
 
 const $ = selector => document.querySelector(selector);
 const $$ = selector => [...document.querySelectorAll(selector)];
-const VERSION = "0.6.0-alpha.4";
+const VERSION = "0.6.0-alpha.5";
 const LEVEL_VIEW = Object.freeze({width: 288, height: 128, padding: 12});
 const CONTROL_DEFAULTS = Object.freeze({
   sharpen_amount: 0,
@@ -499,6 +499,7 @@ async function openFile(file) {
     $("#emptyState").hidden = true;
     $("#editorStage").hidden = false;
     $("#canvasToolbar").hidden = false;
+    $("#app").classList.add("has-photo");
     $("#documentName").textContent = file.name;
     $("#documentMeta").textContent = `${(file.size / 1024 / 1024).toFixed(1)} MB · local only`;
     $("#imageDimensions").textContent = `${$("#originalImage").naturalWidth} × ${$("#originalImage").naturalHeight} · preview ${state.previewBitmap.width} × ${state.previewBitmap.height}`;

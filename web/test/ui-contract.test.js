@@ -34,3 +34,16 @@ test("web uses canonical desktop scale and exact balance and Sharpening labels",
   assert.match(html, /data-setting="green_correction"[^>]*aria-label="Green balance"/);
   assert.match(html, /data-setting="blue_balance"[^>]*aria-label="Blue balance"/);
 });
+
+test("a loaded photo gets a mobile-only sticky preview below the app header", async () => {
+  const [main, webCss] = await Promise.all([
+    readFile(new URL("src/main.js", root), "utf8"),
+    readFile(new URL("src/web-style.css", root), "utf8"),
+  ]);
+  const mobileRules = webCss.slice(webCss.indexOf("@media (max-width: 1035px)"));
+
+  assert.match(main, /\$\("#app"\)\.classList\.add\("has-photo"\)/);
+  assert.match(mobileRules, /\.app\.has-photo \.canvas-area\s*\{[^}]*position:\s*sticky/s);
+  assert.match(mobileRules, /top:\s*calc\(58px \* var\(--ui-scale\)\)/);
+  assert.doesNotMatch(webCss.slice(0, webCss.indexOf("@media (max-width: 1035px)")), /position:\s*sticky/);
+});

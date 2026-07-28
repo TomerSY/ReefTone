@@ -113,6 +113,17 @@ html, body { min-width: 320px; }
   }
   .canvas-area,
   .inspector { container-type: inline-size; }
+  .app.has-photo .canvas-area {
+    position: sticky;
+    top: calc(58px * var(--ui-scale));
+    z-index: 8;
+    height: clamp(280px, 42vh, 360px);
+    height: clamp(280px, 42svh, 360px);
+    min-height: clamp(280px, 42vh, 360px);
+    min-height: clamp(280px, 42svh, 360px);
+    max-height: 360px;
+    box-shadow: 0 calc(9px * var(--ui-scale)) calc(24px * var(--ui-scale)) rgba(0, 0, 0, .32);
+  }
   .inspector-header,
   .controls-scroll,
   .inspector-footer {

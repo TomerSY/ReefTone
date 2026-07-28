@@ -43,6 +43,8 @@ small refinements.
   now consume the canonical desktop 1.5× stylesheet directly
 - Whole-image Before/After is now the default web comparison mode; Swipe is an
   explicit accessible opt-in
+- Loaded photos now remain sticky beneath the web app header at mobile widths,
+  keeping the preview visible while adjustment controls scroll
 
 ### Planned
 
