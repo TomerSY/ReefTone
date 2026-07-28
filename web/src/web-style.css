@@ -120,6 +120,85 @@ html, body { min-width: 320px; }
   line-height: 1.4;
 }
 
+@media (min-width: 1036px) {
+  html, body { overflow: auto; }
+  .app {
+    --web-desktop-header-height: calc(64px * var(--ui-scale));
+    min-height: 100%;
+    height: auto;
+    grid-template-rows: var(--web-desktop-header-height) auto;
+  }
+  .topbar {
+    position: sticky;
+    top: 0;
+  }
+  .workspace {
+    display: grid;
+    grid-template-columns:
+      minmax(0, 1fr)
+      clamp(420px, 32vw, calc(344px * var(--ui-scale)));
+    align-items: start;
+    min-height: calc(100vh - var(--web-desktop-header-height));
+  }
+  .canvas-area {
+    position: sticky;
+    top: var(--web-desktop-header-height);
+    align-self: start;
+    height: calc(100vh - var(--web-desktop-header-height));
+    min-height: calc(100vh - var(--web-desktop-header-height));
+  }
+  .inspector {
+    width: 100%;
+    min-height: calc(100vh - var(--web-desktop-header-height));
+    height: auto;
+    margin: 0;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto auto auto auto;
+    border-top: 0;
+    border-right: 0;
+  }
+  .inspector-header,
+  .controls-scroll,
+  .inspector-footer {
+    width: auto;
+    min-width: 0;
+    max-width: 100%;
+  }
+  .controls-scroll { overflow: visible; }
+}
+
+@media (min-width: 1036px) and (max-width: 1350px) {
+  .canvas-toolbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    justify-content: stretch;
+    gap: calc(6px * var(--ui-scale));
+  }
+  .toolbar-left {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    overflow: hidden;
+  }
+  .toolbar-left .presets {
+    max-width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .toolbar-left .presets::-webkit-scrollbar,
+  .toolbar-right::-webkit-scrollbar { display: none; }
+  .canvas-color-info { display: none; }
+  .toolbar-right {
+    justify-self: start;
+    max-width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .editor-stage {
+    padding-top: calc(94px * var(--ui-scale));
+  }
+}
+
 @media (max-width: 1035px) {
   .app {
     --web-mobile-header-height: 72px;

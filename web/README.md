@@ -24,7 +24,9 @@ Available now:
 - whole-image Before/After by default, explicit opt-in Swipe comparison, plus
   25-point focal magnifier zoom and drag-to-pan
 - a loaded photo stays visible beneath the header while its controls scroll on
-  mobile devices; desktop layout and scrolling are unchanged
+  mobile devices
+- desktop browsers use a dedicated two-column editor with the image workspace
+  sticky on the left and the full settings panel scrolling on the right
 - mobile editing prioritizes the photo with a shorter header, a larger sticky
   preview, no floating color-information card or preview metadata, and a visible
   whole-image Before/After button beside the horizontally scrollable looks

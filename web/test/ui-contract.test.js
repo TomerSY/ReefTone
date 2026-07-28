@@ -45,7 +45,10 @@ test("a loaded photo gets a mobile-only sticky preview below the app header", as
   assert.match(main, /\$\("#app"\)\.classList\.add\("has-photo"\)/);
   assert.match(mobileRules, /\.app\.has-photo \.canvas-area\s*\{[^}]*position:\s*sticky/s);
   assert.match(mobileRules, /top:\s*var\(--web-mobile-header-height\)/);
-  assert.doesNotMatch(webCss.slice(0, webCss.indexOf("@media (max-width: 1035px)")), /position:\s*sticky/);
+  assert.doesNotMatch(
+    webCss.slice(0, webCss.indexOf("@media (max-width: 1035px)")),
+    /\.app\.has-photo \.canvas-area\s*\{[^}]*position:\s*sticky/s,
+  );
 });
 
 test("mobile prioritizes the photo and keeps Before/After beside the looks", async () => {
@@ -86,4 +89,22 @@ test("web sharpening is an unboxed subsection with the standard heading hierarch
   assert.match(webCss, /\.sharpening-tool\s*\{[^}]*padding:\s*0;[^}]*border:\s*0;[^}]*border-radius:\s*0;[^}]*background:\s*transparent/s);
   assert.match(webCss, /\.sharpening-heading strong\s*\{[^}]*font-size:\s*calc\(12px \* var\(--ui-scale\)\);[^}]*font-weight:\s*680/s);
   assert.match(webCss, /\.sharpening-heading small\s*\{[^}]*font-size:\s*calc\(9px \* var\(--ui-scale\)\)/s);
+});
+
+test("desktop web keeps the image sticky on the left and settings on the right", async () => {
+  const webCss = await readFile(new URL("src/web-style.css", root), "utf8");
+  const desktopRules = webCss.slice(
+    webCss.indexOf("@media (min-width: 1036px)"),
+    webCss.indexOf("@media (max-width: 1035px)"),
+  );
+
+  assert.match(desktopRules, /\.workspace\s*\{[^}]*display:\s*grid;[^}]*grid-template-columns:[^;]*minmax\(0,\s*1fr\)[^;]*clamp\(420px,\s*32vw,\s*calc\(344px \* var\(--ui-scale\)\)\)/s);
+  assert.match(desktopRules, /\.canvas-area\s*\{[^}]*position:\s*sticky;[^}]*top:\s*var\(--web-desktop-header-height\)/s);
+  assert.match(desktopRules, /\.inspector\s*\{[^}]*width:\s*100%;[^}]*margin:\s*0;[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\);[^}]*grid-template-rows:\s*auto auto auto auto auto/s);
+  assert.match(desktopRules, /\.inspector-header,\s*\.controls-scroll,\s*\.inspector-footer\s*\{[^}]*width:\s*auto;[^}]*max-width:\s*100%/s);
+  assert.match(desktopRules, /\.controls-scroll\s*\{\s*overflow:\s*visible/);
+  assert.match(desktopRules, /@media \(min-width:\s*1036px\) and \(max-width:\s*1350px\)/);
+  assert.match(desktopRules, /\.canvas-toolbar\s*\{[^}]*display:\s*grid;[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)/s);
+  assert.match(desktopRules, /\.canvas-color-info\s*\{\s*display:\s*none/);
+  assert.doesNotMatch(desktopRules, /flex-direction:\s*column/);
 });

@@ -55,6 +55,9 @@ small refinements.
   independent of the right-aligned reset and bypass actions
 - Web Sharpening now uses the standard Presence heading hierarchy without a
   special card border, background, or inset padding
+- Desktop web editing now keeps the image workspace sticky on the left while
+  the complete settings panel occupies and scrolls in the right column; the
+  mobile layout is unchanged
 
 ### Planned
 
