@@ -1,7 +1,7 @@
 {
   "name": "ReefTone Web",
   "short_name": "ReefTone",
-  "description": "Private underwater color correction that runs on your device.",
+  "description": "Local-first underwater color correction that runs on your device.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#07110f",

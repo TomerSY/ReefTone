@@ -3,7 +3,7 @@
 ## Design boundary
 
 Underwater restoration is ill-posed: attenuation varies with wavelength, range,
-water type, illumination, and camera response. ReefTone 0.3 uses a deterministic
+water type, illumination, and camera response. ReefTone uses a deterministic
 single-image enhancement pipeline. It does not claim to recover physically measured
 surface colors without range data.
 

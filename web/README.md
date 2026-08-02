@@ -22,7 +22,7 @@ Available now:
 - output-neutral thresholded unsharp-mask Sharpening with Amount, Radius, and
   Threshold in preview and full-resolution worker export
 - whole-image Before/After by default, explicit opt-in Swipe comparison, plus
-  25-point focal magnifier zoom and drag-to-pan
+  25-percentage-point focal magnifier zoom and drag-to-pan
 - a loaded photo stays visible beneath the header while its controls scroll on
   mobile devices
 - desktop browsers use a dedicated two-column editor with the image workspace

@@ -1,7 +1,7 @@
 # Reference style analysis
 
-This analysis compares the supplied “before” screenshot with the generated
-ChatGPT “after” screenshot. It informed ReefTone's **Dramatic** preset.
+This analysis compares a supplied “before” screenshot with an AI-generated
+“after” reference. It informed ReefTone's **Dramatic** preset.
 
 ## Important limitation
 
@@ -41,21 +41,22 @@ Mean RGB values show the color strategy:
 
 ## Reusable reconstruction
 
-The closest non-generative reconstruction is a layered pipeline:
+The reference suggests this layered, non-generative reconstruction:
 
 1. Moderate adaptive white balance—avoid pushing red globally.
 2. A stronger S-curve with highlight protection.
 3. Selective aqua/blue mixing that keeps water luminous.
 4. A soft subject-attention mask for lift, warmth, and texture.
 5. A darker, slightly warmer background outside that mask.
-6. A feathered top gradient and optical vignette in the generated reference.
+6. A feathered top gradient and optical vignette.
+7. Targeted texture and clarity, with conservative denoise.
 
-ReefTone 0.3 intentionally does not expose guessed depth, subject-focus, gradient,
-or vignette controls. The reference remains useful for global color and tone
-targets, while the production algorithm now uses depth-free white balance and
-multiscale fusion.
-7. Targeted texture/clarity, with conservative denoise.
+The subject mask, top gradient, and vignette describe evidence in the reference;
+they are not claims about ReefTone's current implementation. ReefTone intentionally
+avoids guessed depth or focus controls. Its production pipeline uses depth-free
+white balance and multiscale fusion, so the reference remains a color-and-tone
+target rather than a pixel-matching specification.
 
-These behaviors are exposed as independent controls. The **Dramatic** preset is a
-starting point, and **Overall mix** can reduce its intensity without changing the
-relative balance of the layers.
+The implemented global behaviors are exposed as independent controls. The
+**Dramatic** preset is a starting point, and **Overall mix** can reduce its intensity
+without changing the relative balance of the active processing stages.
