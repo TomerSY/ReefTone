@@ -3,7 +3,7 @@
 ## Design boundary
 
 Underwater restoration is ill-posed: attenuation varies with wavelength, range,
-water type, illumination, and camera response. ReefTone 0.3 uses a deterministic
+water type, illumination, and camera response. ReefTone uses a deterministic
 single-image enhancement pipeline. It does not claim to recover physically measured
 surface colors without range data.
 
@@ -35,7 +35,7 @@ Decode + orient → RGB float32
         ↓
 Robust scene analysis
         ↓
-Red compensation + adaptive gray-world balance
+Underwater-aware Red + Green + Blue balance and adaptive gray-world balance
         ↓
 Optional user-sampled neutral-point gains
         ↓
@@ -44,7 +44,9 @@ Contrast/CLAHE branch ─┼→ Gaussian/Laplacian pyramid fusion
         ↓              ┘
 Exposure → black/white points → tone curve
         ↓
-Color → clarity/denoise → non-destructive master mix
+RGB Levels → Red → Green → Blue Levels
+        ↓
+Color → clarity/denoise → thresholded sharpening → non-destructive master mix
 ```
 
 The same `correct_image()` function is used for preview, full-resolution export,
@@ -59,7 +61,7 @@ cast, low dynamic range, low light, and underwater confidence.
 
 ### 2. Underwater white balance
 
-Red recovery follows the Ancuti-style compensation shape:
+Red balance retains the established Ancuti-style compensation shape:
 
 ```text
 R' = R + α(Ḡ - R̄)(1 - R)G
@@ -71,7 +73,11 @@ magenta. After compensation, robust channel means are measured again and a
 confidence-weighted gray-world gain brings red closer to green without forcing the
 entire water column to neutral gray.
 
-Temperature and tint are direct creative gains and remain neutral at zero.
+Green balance is a scene-relative artist control. Positive values move a
+green-heavy channel toward the mean of red and blue; negative values can restore
+green when it is deficient. Blue balance remains scene-adaptive, and Temperature
+and Tint remain direct creative gains. The serialized keys remain
+`red_recovery`, `green_correction`, and `blue_balance` for backward compatibility.
 
 ### 3. Neutral-point eyedropper
 
@@ -99,19 +105,30 @@ controls how strongly the fused result replaces the balanced base.
 - shadows and highlights use luminance masks;
 - black point and white point remap the endpoints before contrast;
 - contrast uses an exponential mid-gray pivot so small changes are visible;
+- Levels uses five fixed input anchors and monotone cubic interpolation, applying
+  RGB before the Red, Green, and Blue channel curves;
 - vibrance preferentially affects low-saturation colors;
 - clarity is a mid-frequency unsharp mask;
-- denoise is an edge-preserving bilateral blend.
+- denoise is an edge-preserving bilateral blend;
+- Sharpening uses a final float32 unsharp mask. Amount is 0–200%, Radius is
+  0.3–5.0 pixels, and Threshold is a 0–20% luminance-difference gate that suppresses
+  small noise before detail is added. Amount defaults to zero, so legacy settings
+  and every curated preset remain output-neutral.
 
 ### 6. Non-destructive controls
 
 Every slider has two local actions:
 
-- reset sets only that setting to its neutral value of zero;
-- bypass sends zero for that setting while preserving its chosen value.
+- reset sets only that setting to its documented default;
+- bypass sends its documented neutral value while preserving its chosen value.
 
 Preset values are intentionally separated, and the master mix blends the entire
 corrected result with the untouched source.
+
+Levels has the same behavior at channel scope. Reset restores the identity
+`0, 0.25, 0.5, 0.75, 1` curve, while bypass temporarily substitutes that identity
+without discarding the edited markers. Marker ordering is enforced in the UI and
+again when API settings are parsed.
 
 ## Precision and limitations
 

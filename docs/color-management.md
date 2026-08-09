@@ -2,10 +2,10 @@
 
 ## Bottom line
 
-ReefTone never overwrites the original. Version 0.4 detects the image's base bit
-depth, embedded ICC profile or NCLX color tags, transfer function, HDR form, and
-HEIF auxiliary images. Preview JPEGs now carry the source ICC profile so a
-color-managed browser does not reinterpret Display P3 numbers as untagged sRGB.
+ReefTone never overwrites the original. The current Python editor detects the
+image's base bit depth, embedded ICC profile or NCLX color tags, transfer function,
+HDR form, and HEIF auxiliary images. Preview JPEGs now carry the source ICC profile
+so a color-managed browser does not reinterpret Display P3 numbers as untagged sRGB.
 
 For SDR and wide-color SDR images, edits remain in the source display-referred
 profile. Compatible exports preserve the ICC profile and camera metadata.
@@ -16,7 +16,7 @@ the SDR and HDR versions. Until the native HDR pipeline described below is built
 ReefTone clearly labels the edit as using the color-managed SDR base and exports a
 wide-color SDR copy.
 
-ISO HDR input is similarly detected from its bit depth and HLG/PQ tags. Version 0.4
+ISO HDR input is similarly detected from its bit depth and HLG/PQ tags. The editor
 asks libheif for a tone-mapped SDR decode before running the display-referred
 correction engine, tags that working copy as sRGB, and deliberately removes the HDR
 transfer tags from the edited output. This is safer than applying SDR math directly
@@ -32,8 +32,8 @@ An iPhone HEIC is a container, not just one pixel array. A typical file can cont
 - an ICC or NCLX/CICP color description;
 - EXIF, XMP, GPS, MakerNote, orientation, and capture metadata.
 
-The sample `IMG_5502.HEIC` in this project contains an 8-bit Display P3 base plus
-an Apple HDR gain map and three additional auxiliary image types. Reporting it only
+Validation samples have included an 8-bit Display P3 base, an Apple HDR gain map,
+and additional auxiliary image types in one container. Reporting such a file only
 as “8-bit HEIC” would therefore be incomplete.
 
 ## Research basis
@@ -53,7 +53,7 @@ Apple emphasizes tagging images with the correct profile and converting rather t
 assigning a different profile. See [Get Started with Display
 P3](https://developer.apple.com/videos/play/wwdc2017/821/).
 
-## Export behavior in 0.4
+## Current Python export behavior
 
 | Format | Precision | ICC profile | EXIF/XMP | HDR gain map |
 | --- | ---: | --- | --- | --- |

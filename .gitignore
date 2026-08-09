@@ -8,6 +8,9 @@ __pycache__/
 htmlcov/
 build/
 dist/
+web/node_modules/
+web/dist/
+.pnpm-store/
 *.egg-info/
 .reeftone_cache/
 exports/
@@ -21,8 +24,30 @@ exports/
 *.jpg
 *.JPEG
 *.jpeg
+*.PNG
+*.png
+*.TIF
+*.tif
+*.TIFF
+*.tiff
+*.WEBP
+*.webp
+*.AVIF
+*.avif
+*.DNG
+*.dng
+*.XMP
+*.xmp
 *.MOV
 *.mov
 *.MP4
 *.mp4
+*.M4V
+*.m4v
+*.AVI
+*.avi
+*.MKV
+*.mkv
 
+# Public application artwork is reviewed and checked in deliberately.
+!web/public/*.png

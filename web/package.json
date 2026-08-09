@@ -1,0 +1,16 @@
+{
+  "name": "reeftone-web",
+  "private": true,
+  "version": "0.6.0-alpha.9",
+  "packageManager": "pnpm@11.9.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "vite build",
+    "preview": "vite preview --host 127.0.0.1",
+    "test": "node --test"
+  },
+  "devDependencies": {
+    "vite": "^7.0.0"
+  }
+}

@@ -14,6 +14,34 @@ def teal_test_image(height: int = 120, width: int = 180) -> np.ndarray:
     return np.clip(image, 0, 1)
 
 
+def identity_settings(**overrides: float) -> CorrectionSettings:
+    values = {
+        "master": 1,
+        "auto_restore": 0,
+        "red_recovery": 0,
+        "green_correction": 0,
+        "blue_balance": 0,
+        "dehaze": 0,
+        "temperature": 0,
+        "tint": 0,
+        "exposure": 0,
+        "contrast": 0,
+        "black_point": 0,
+        "white_point": 0,
+        "highlights": 0,
+        "shadows": 0,
+        "saturation": 0,
+        "vibrance": 0,
+        "clarity": 0,
+        "denoise": 0,
+        "sharpen_amount": 0,
+        "sharpen_radius": 1,
+        "sharpen_threshold": 0.02,
+    }
+    values.update(overrides)
+    return CorrectionSettings(**values)
+
+
 def test_analysis_detects_underwater_cast() -> None:
     analysis = analyze_image(teal_test_image())
     assert analysis.red_loss > 0.45
@@ -84,3 +112,108 @@ def test_sampled_neutral_point_changes_channel_balance() -> None:
     before_ratio = float(source[..., 0].mean() / source[..., 1].mean())
     after_ratio = float(corrected[..., 0].mean() / corrected[..., 1].mean())
     assert after_ratio > before_ratio * 1.8
+
+
+def test_green_correction_reduces_a_green_heavy_cast() -> None:
+    source = np.full((24, 32, 3), [0.2, 0.7, 0.3], dtype=np.float32)
+    corrected = correct_image(source, identity_settings(green_correction=1))
+    assert float(corrected[..., 1].mean()) < float(source[..., 1].mean()) - 0.05
+    np.testing.assert_allclose(corrected[..., 0], source[..., 0], atol=1e-6)
+    np.testing.assert_allclose(corrected[..., 2], source[..., 2], atol=1e-6)
+
+
+def test_neutral_levels_are_identity() -> None:
+    source = teal_test_image()
+    corrected = correct_image(source, identity_settings())
+    np.testing.assert_allclose(corrected, source, atol=2e-6)
+
+
+def test_levels_curve_is_monotonic_and_does_not_collapse_output() -> None:
+    ramp = np.linspace(0.02, 0.98, 1024, dtype=np.float32)
+    source = np.repeat(ramp[None, :, None], 3, axis=2)
+    settings = identity_settings(
+        levels_rgb_black=0.03,
+        levels_rgb_shadows=0.18,
+        levels_rgb_midtone=0.58,
+        levels_rgb_highlights=0.86,
+        levels_rgb_white=0.98,
+    )
+    corrected = correct_image(source, settings)
+    assert float(corrected.min()) > 0
+    assert np.all(np.diff(corrected[0, :, 0]) >= -1e-6)
+    assert np.isfinite(corrected).all()
+
+
+def test_per_channel_levels_only_change_the_selected_channel() -> None:
+    source = teal_test_image()
+    settings = identity_settings(
+        levels_red_black=0.08,
+        levels_red_shadows=0.34,
+        levels_red_midtone=0.62,
+        levels_red_highlights=0.82,
+        levels_red_white=1,
+    )
+    corrected = correct_image(source, settings)
+    assert np.mean(np.abs(corrected[..., 0] - source[..., 0])) > 0.02
+    np.testing.assert_allclose(corrected[..., 1], source[..., 1], atol=2e-6)
+    np.testing.assert_allclose(corrected[..., 2], source[..., 2], atol=2e-6)
+
+
+def test_sharpening_amount_zero_is_exact_identity() -> None:
+    source = teal_test_image(64, 96)
+    baseline = correct_image(source, identity_settings())
+    settings = identity_settings(
+        sharpen_amount=0,
+        sharpen_radius=5,
+        sharpen_threshold=0,
+    )
+    np.testing.assert_array_equal(correct_image(source, settings), baseline)
+
+
+def test_sharpening_radius_controls_detail_spread() -> None:
+    source = np.full((65, 65, 3), 0.45, dtype=np.float32)
+    source[32, 32] = 0.7
+    narrow = correct_image(
+        source,
+        identity_settings(sharpen_amount=1, sharpen_radius=0.3, sharpen_threshold=0),
+    )
+    wide = correct_image(
+        source,
+        identity_settings(sharpen_amount=1, sharpen_radius=4, sharpen_threshold=0),
+    )
+    narrow_changed = np.count_nonzero(np.abs(narrow[..., 0] - source[..., 0]) > 1e-5)
+    wide_changed = np.count_nonzero(np.abs(wide[..., 0] - source[..., 0]) > 1e-5)
+    assert wide_changed > narrow_changed
+
+
+def test_sharpening_threshold_suppresses_small_noise() -> None:
+    rng = np.random.default_rng(42)
+    source = np.clip(
+        0.5 + rng.normal(0, 0.002, (72, 96, 1)),
+        0,
+        1,
+    ).astype(np.float32)
+    source = np.repeat(source, 3, axis=2)
+    unthresholded = correct_image(
+        source,
+        identity_settings(sharpen_amount=2, sharpen_radius=1, sharpen_threshold=0),
+    )
+    thresholded = correct_image(
+        source,
+        identity_settings(sharpen_amount=2, sharpen_radius=1, sharpen_threshold=0.02),
+    )
+    assert np.mean(np.abs(unthresholded - source)) > 0.001
+    np.testing.assert_allclose(thresholded, source, atol=1e-6)
+
+
+def test_sharpening_strengthens_edges_without_nans_or_out_of_range_values() -> None:
+    source = np.full((64, 96, 3), 0.2, dtype=np.float32)
+    source[:, 48:] = 0.75
+    result = correct_image(
+        source,
+        identity_settings(sharpen_amount=2, sharpen_radius=2, sharpen_threshold=0),
+    )
+    assert np.isfinite(result).all()
+    assert float(result.min()) >= 0
+    assert float(result.max()) <= 1
+    assert float(result[:, 48, :].mean() - result[:, 47, :].mean()) > 0.55

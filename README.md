@@ -14,13 +14,14 @@ like a focused desktop editor today and can grow into a hosted product later.
 - base bit-depth, ICC/P3, transfer-function, HDR gain-map, and auxiliary-image detection
 - float32 processing from decode through correction
 - scene analysis for red attenuation, cyan cast, haze, and low light
-- underwater red compensation and confidence-gated white balance
+- underwater-aware Red, Green, and Blue balance with confidence-gated white balance
 - research-backed multiscale fusion of color-balanced and contrast-enhanced inputs
-- exposure, contrast, black/white points, tone, vibrance, clarity, and denoise
+- exposure, contrast, five-point RGB/channel Levels, tone, vibrance, clarity,
+  thresholded unsharp-mask sharpening, and denoise
 - a neutral-point eyedropper plus per-slider reset and non-destructive bypass
 - a real-time before/after editor with distinct presets, undo/redo, drag-and-drop,
   and keyboard-accessible controls
-- point-centered magnifier zoom, fixed pixel-ratio views, and drag-to-pan
+- point-centered 25% magnifier zoom, fixed pixel-ratio views, and drag-to-pan
 - collapsible source color-space and dynamic-range information
 - full-resolution JPEG, PNG, and 16-bit TIFF export
 - 10-bit HEIC export with source ICC, EXIF, and available XMP preservation
@@ -56,11 +57,16 @@ screen. You can also drag a file anywhere over the app.
 
 1. Open a photo and start with **Natural**. Use **Dramatic** for a warmer,
    darker, high-contrast treatment.
-2. Use the comparison divider to check skin, coral, and open-water gradients.
-3. Adjust **Red recovery** before adding saturation. This restores missing balance
-   more naturally than globally boosting color.
-4. Use **Fusion clarity** to blend in the multiscale contrast branch.
-5. Export a JPEG for sharing or a 16-bit TIFF as a high-quality editing master.
+2. Hold **Before** for a whole-image check, or explicitly enable **Swipe** for a
+   draggable divider.
+3. Adjust **Red balance** before adding saturation. It is an underwater-aware
+   recovery control, not a naive red-channel multiplier.
+4. Use **Green balance** when green dominates after Red balance, then refine tonal
+   placement with the five Levels markers. **Blue balance** handles blue dominance.
+5. Use **Fusion clarity** to blend in the multiscale contrast branch.
+6. Add **Sharpening** only when needed: Amount controls strength, Radius controls
+   the edge scale in pixels, and Threshold protects fine noise.
+7. Export a JPEG for sharing or a 16-bit TIFF as a high-quality editing master.
 
 Use the eyedropper only on something that should be gray, white, or neutral.
 ReefTone averages a small patch and balances it without changing any other slider.
@@ -84,6 +90,7 @@ src/reeftone/
   app.py            Local FastAPI application
   session.py        Bounded, private preview sessions
   static/           Responsive editor UI
+web/                 Browser-local PWA alpha
 tests/               Unit and API tests
 docs/                Architecture and roadmap
 ```
@@ -118,11 +125,32 @@ JPEG photographs rather than camera RAW development. See
 [the algorithm notes](docs/algorithm.md) for details and limitations. The measurements
 behind the Dramatic look are recorded in
 [the reference-style analysis](docs/reference-style-analysis.md).
+The exact desktop labels, layout tokens, and serialized setting behavior are the
+reference for web parity in [the desktop UI contract](docs/desktop-ui-contract.md).
 
 Apple gain-map HDR is now detected and reported separately from the SDR base.
 ReefTone does not copy an unchanged gain map onto edited pixels or falsely tag an
 SDR result as HDR. The exact preservation matrix and native HDR roadmap are in
 [the color-management notes](docs/color-management.md).
+
+## Browser-local web alpha
+
+The new [`web/`](web/) workspace is the beginning of a free public edition that
+does its image work on the user's device. The first alpha opens JPEG/PNG files,
+renders a reliable local Canvas preview, and exports locally. It has no photo upload
+endpoint and does not change the Python editor.
+
+This alpha is a product and performance foundation, not yet a color-management
+replacement for the Python app. HEIC, embedded metadata preservation, Display P3,
+HDR output, algorithm parity, and video remain disabled until they can be
+validated end to end. See the [web alpha notes](web/README.md) for its exact scope.
+
+```bash
+cd web
+pnpm install
+pnpm test
+pnpm dev
+```
 
 ## Video roadmap
 
